@@ -1,0 +1,349 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#f8f5ef">
+    <meta name="description" content="Explore beautiful blankets, bedsheets and home textiles at The Krishna Handloom.">
+
+    <title>The Krishna Handloom | Home Textiles</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+    <!-- ANNOUNCEMENT BAR -->
+    <div class="announcement-bar">
+        Discover comfort, crafted for your home.
+    </div>
+
+    <!-- HEADER -->
+    <header class="header">
+
+        <div class="header-inner">
+
+            <a href="#" class="logo">
+                <span class="logo-main">KRISHNA</span>
+                <span class="logo-sub">HANDLOOM</span>
+            </a>
+
+            <button class="menu-toggle" id="menuToggle"
+                aria-label="Toggle navigation">
+                ☰
+            </button>
+
+            <nav class="navigation" id="navigation">
+                <a href="#home">Home</a>
+                <a href="#categories">Collections</a>
+                <a href="#products">Products</a>
+                <a href="#about">Our Story</a>
+                <a href="#contact">Contact</a>
+            </nav>
+
+        </div>
+
+    </header>
+
+
+    <!-- HERO SECTION -->
+    <main>
+
+        <section class="hero" id="home">
+
+            <div class="hero-content">
+
+                <span class="eyebrow">
+                    THE ART OF COMFORT
+                </span>
+
+                <h1>
+                    Make your home<br>
+                    feel like <em>home.</em>
+                </h1>
+
+                <p>
+                    Discover thoughtfully selected blankets,
+                    bedsheets and beautiful home textiles
+                    that bring warmth to every corner.
+                </p>
+
+                <a href="#categories" class="primary-btn">
+                    Explore Collections
+                    <span>→</span>
+                </a>
+
+            </div>
+
+            <div class="hero-image">
+                <img
+                    src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1200"
+                    alt="Elegant home interior"
+                >
+            </div>
+
+        </section>
+
+
+        <!-- TRUST SECTION -->
+        <section class="features">
+
+            <div class="feature">
+                <span>✦</span>
+                <div>
+                    <h3>Thoughtful Selection</h3>
+                    <p>Beautifully selected products</p>
+                </div>
+            </div>
+
+            <div class="feature">
+                <span>◇</span>
+                <div>
+                    <h3>Everyday Comfort</h3>
+                    <p>Made for your living spaces</p>
+                </div>
+            </div>
+
+            <div class="feature">
+                <span>♡</span>
+                <div>
+                    <h3>Personal Assistance</h3>
+                    <p>Connect directly with us</p>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- CATEGORIES -->
+        <section class="categories section" id="categories">
+
+            <div class="section-heading">
+                <span class="eyebrow">EXPLORE OUR RANGE</span>
+                <h2>Shop by Category</h2>
+                <p>Find something special for every room.</p>
+            </div>
+
+            <div class="category-grid" id="categoryGrid">
+
+                <!-- Categories will be loaded dynamically -->
+
+            </div>
+
+        </section>
+
+
+        <!-- PRODUCTS -->
+        <section class="products section" id="products">
+
+            <div class="section-heading">
+                <span class="eyebrow">OUR COLLECTION</span>
+                <h2>Explore Our Products</h2>
+                <p>Discover pieces that make a house feel like home.</p>
+            </div>
+
+
+            <!-- SEARCH -->
+            <div class="product-controls">
+
+                <div class="search-box">
+                    <span>⌕</span>
+
+                    <input
+                        type="search"
+                        id="searchInput"
+                        placeholder="Search blankets, bedsheets..."
+                    >
+                </div>
+
+                <select id="categoryFilter">
+                    <option value="all">All Categories</option>
+                </select>
+
+            </div>
+
+
+            <!-- ACTIVE FILTER -->
+            <div class="active-filter" id="activeFilter">
+                Showing all products
+            </div>
+
+
+            <!-- PRODUCT GRID -->
+            <div class="product-grid" id="productGrid">
+
+                <div class="loading-message">
+                    Loading our collection...
+                </div>
+
+            </div>
+
+
+            <!-- EMPTY STATE -->
+            <div class="empty-state" id="emptyState" hidden>
+
+                <div class="empty-icon">◇</div>
+
+                <h3>No products found</h3>
+
+                <p>
+                    Try another search or explore a different category.
+                </p>
+
+                <button id="resetFilters" class="secondary-btn">
+                    View All Products
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ABOUT -->
+        <section class="about section" id="about">
+
+            <div class="about-image">
+                <img
+                    src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1000"
+                    alt="Warm and elegant home interior"
+                    loading="lazy"
+                >
+            </div>
+
+            <div class="about-content">
+
+                <span class="eyebrow">WELCOME TO KRISHNA HANDLOOM</span>
+
+                <h2>
+                    Comfort is in<br>
+                    the little details.
+                </h2>
+
+                <p>
+                    Your home deserves warmth, comfort and style.
+                    Explore our collection of home textiles and
+                    find something that feels just right for you.
+                </p>
+
+                <a href="#products" class="text-link">
+                    Discover our collection →
+                </a>
+
+            </div>
+
+        </section>
+
+
+        <!-- CONTACT -->
+        <section class="contact section" id="contact">
+
+            <span class="eyebrow">WE ARE HERE TO HELP</span>
+
+            <h2>Something caught your eye?</h2>
+
+            <p>
+                Have a question about a product?
+                Connect with us directly on WhatsApp.
+            </p>
+
+            <a
+                href="#"
+                id="generalWhatsapp"
+                class="primary-btn whatsapp-btn"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Chat with us on WhatsApp →
+            </a>
+
+        </section>
+
+    </main>
+
+
+    <!-- FOOTER -->
+    <footer class="footer">
+
+        <a href="#" class="footer-logo">
+            KRISHNA HANDLOOM
+        </a>
+
+        <p>
+            Bringing comfort and warmth to your home.
+        </p>
+
+        <div class="footer-links">
+            <a href="#home">Home</a>
+            <a href="#categories">Collections</a>
+            <a href="#products">Products</a>
+            <a href="#contact">Contact</a>
+        </div>
+
+        <div class="footer-bottom">
+            © <span id="currentYear"></span> The Krishna Handloom.
+            All rights reserved.
+        </div>
+
+    </footer>
+
+
+    <!-- PRODUCT DETAIL MODAL -->
+    <div class="modal-overlay" id="productModal" hidden>
+
+        <div class="product-modal">
+
+            <button
+                class="modal-close"
+                id="modalClose"
+                aria-label="Close product details"
+            >
+                ×
+            </button>
+
+            <div class="modal-gallery">
+                <img id="modalImage" src="" alt="Product image">
+
+                <div class="modal-thumbnails" id="modalThumbnails"></div>
+            </div>
+
+            <div class="modal-details">
+
+                <span class="eyebrow" id="modalCategory"></span>
+
+                <h2 id="modalName"></h2>
+
+                <p id="modalDescription"></p>
+
+                <a
+                    id="modalWhatsapp"
+                    class="primary-btn whatsapp-btn"
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Enquire on WhatsApp →
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- JAVASCRIPT FILES -->
+    <script src="js/supabase.js"></script>
+    <script src="js/products.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>
