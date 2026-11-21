@@ -4,8 +4,7 @@
 ========================================== */
 
 const ADMIN_UID = "c7479b30-3c69-4a0c-bfe8-c5f18b7ad1d1";
-
-const supabaseClient = window.supabaseClient;
+const db = window.supabaseClient;
 const BUCKET = "product-images";
 
 let currentUser = null;
@@ -14,35 +13,23 @@ let categories = [];
 let existingImages = [];
 let selectedFiles = [];
 
-/* ==========================================
-   ELEMENTS
-========================================== */
-
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 const loginScreen = $("loginScreen");
 const dashboardScreen = $("dashboardScreen");
-
 const loginForm = $("loginForm");
 const loginMessage = $("loginMessage");
 const loginButton = $("loginButton");
-
 const logoutButton = $("logoutButton");
-
 const productList = $("productList");
 const categoryList = $("categoryList");
-
 const productModal = $("productModal");
 const productForm = $("productForm");
-
 const productImagesInput = $("productImages");
 const imagePreview = $("imagePreview");
-
 const productMessage = $("productMessage");
 
-/* ==========================================
-   HELPERS
-========================================== */
+/* HELPERS */
 
 function showMessage(element, message, type = "error") {
     element.textContent = message;
@@ -55,7 +42,7 @@ function clearMessage(element) {
 }
 
 function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
@@ -64,30 +51,21 @@ function escapeHTML(value) {
     })[char]);
 }
 
-function getCategoryName(categoryId) {
-    const category = categories.find(
-        item => item.id === categoryId
-    );
-
+function getCategoryName(id) {
+    const category = categories.find(item => item.id === id);
     return category ? category.name : "Uncategorised";
 }
 
 function getImages(product) {
-    return Array.isArray(product.images)
-        ? product.images
-        : [];
+    return Array.isArray(product.images) ? product.images : [];
 }
 
-/* ==========================================
-   AUTHENTICATION
-========================================== */
+/* AUTHENTICATION */
 
 async function checkAdmin(user) {
     if (!user || user.id !== ADMIN_UID) {
-        await supabaseClient.auth.signOut();
-
+        await db.auth.signOut();
         currentUser = null;
-
         loginScreen.classList.remove("hidden");
         dashboardScreen.classList.add("hidden");
 
@@ -95,32 +73,24 @@ async function checkAdmin(user) {
             loginMessage,
             "This account does not have administrator access."
         );
-
         return false;
     }
 
     currentUser = user;
-
     loginScreen.classList.add("hidden");
     dashboardScreen.classList.remove("hidden");
-
     clearMessage(loginMessage);
 
     await loadDashboard();
-
     return true;
 }
 
-loginForm.addEventListener("submit", async (event) => {
+loginForm.addEventListener("submit", async event => {
     event.preventDefault();
-
     clearMessage(loginMessage);
 
-    if (!supabaseClient) {
-        showMessage(
-            loginMessage,
-            "Supabase is not configured. Check js/supabase.js."
-        );
+    if (!db) {
+        showMessage(loginMessage, "Supabase is not configured. Check js/supabase.js.");
         return;
     }
 
@@ -128,23 +98,12 @@ loginForm.addEventListener("submit", async (event) => {
     loginButton.textContent = "Signing in...";
 
     try {
-        const email = $("email").value.trim();
-        const password = $("password").value;
-
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email,
-            password
+        const { data, error } = await db.auth.signInWithPassword({
+            email: $("email").value.trim(),
+            password: $("password").value
         });
 
         if (error) throw error;
-
-        if (data.user.id !== ADMIN_UID) {
-            await supabaseClient.auth.signOut();
-
-            throw new Error(
-                "This account is not authorised to access the dashboard."
-            );
-        }
 
         await checkAdmin(data.user);
 
@@ -157,7 +116,7 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 logoutButton.addEventListener("click", async () => {
-    const { error } = await supabaseClient.auth.signOut();
+    const { error } = await db.auth.signOut();
 
     if (error) {
         alert("Unable to sign out: " + error.message);
@@ -165,113 +124,73 @@ logoutButton.addEventListener("click", async () => {
     }
 
     currentUser = null;
-
     dashboardScreen.classList.add("hidden");
     loginScreen.classList.remove("hidden");
-
     loginForm.reset();
 });
 
-/* ==========================================
-   INITIAL SESSION CHECK
-========================================== */
+/* INITIAL SESSION */
 
 async function initializeAdmin() {
-    if (!supabaseClient) {
-        showMessage(
-            loginMessage,
-            "Supabase connection missing. Check your configuration."
-        );
+    if (!db) {
+        showMessage(loginMessage, "Supabase connection missing. Check js/supabase.js.");
         return;
     }
 
     try {
-        const { data, error } = await supabaseClient.auth.getSession();
-
+        const { data, error } = await db.auth.getSession();
         if (error) throw error;
 
         if (data.session) {
             await checkAdmin(data.session.user);
         }
-
     } catch (error) {
         showMessage(loginMessage, error.message);
     }
 }
 
-/* ==========================================
-   NAVIGATION
-========================================== */
+/* NAVIGATION */
 
 function showSection(section) {
-    const sections = [
-        "overview",
-        "products",
-        "categories"
-    ];
-
-    sections.forEach(name => {
-        $(name + "Section").classList.toggle(
-            "hidden",
-            name !== section
-        );
+    ["overview", "products", "categories"].forEach(name => {
+        $(name + "Section").classList.toggle("hidden", name !== section);
     });
 
     document.querySelectorAll(".nav-item").forEach(button => {
-        button.classList.toggle(
-            "active",
-            button.dataset.section === section
-        );
+        button.classList.toggle("active", button.dataset.section === section);
     });
 
-    const titles = {
+    $("pageTitle").textContent = {
         overview: "Overview",
         products: "Products",
         categories: "Categories"
-    };
-
-    $("pageTitle").textContent = titles[section];
+    }[section];
 }
 
 document.querySelectorAll(".nav-item").forEach(button => {
-    button.addEventListener("click", () => {
-        showSection(button.dataset.section);
-    });
+    button.addEventListener("click", () => showSection(button.dataset.section));
 });
 
-$("goToProducts").addEventListener("click", () => {
-    showSection("products");
-});
+$("goToProducts").addEventListener("click", () => showSection("products"));
 
-/* ==========================================
-   LOAD DASHBOARD
-========================================== */
+/* DASHBOARD DATA */
 
 async function loadDashboard() {
-    await Promise.all([
-        loadCategories(),
-        loadProducts()
-    ]);
-
+    await Promise.all([loadCategories(), loadProducts()]);
     updateStatistics();
 }
 
-/* ==========================================
-   CATEGORIES
-========================================== */
+/* CATEGORIES */
 
 async function loadCategories() {
-    const { data, error } = await supabaseClient
+    const { data, error } = await db
         .from("categories")
         .select("*")
         .order("name", { ascending: true });
 
-    if (error) {
-        throw error;
-    }
+    if (error) throw error;
 
     categories = data || [];
-
     renderCategories();
     populateCategorySelect();
 }
@@ -286,11 +205,8 @@ function renderCategories() {
     categoryList.innerHTML = categories.map(category => `
         <div class="category-item">
             <strong>${escapeHTML(category.name)}</strong>
-
-            <button
-                type="button"
-                data-delete-category="${escapeHTML(category.id)}"
-            >
+            <button type="button"
+                data-delete-category="${escapeHTML(category.id)}">
                 Delete
             </button>
         </div>
@@ -307,12 +223,11 @@ function populateCategorySelect() {
         `).join("");
 }
 
-$("categoryForm").addEventListener("submit", async (event) => {
+$("categoryForm").addEventListener("submit", async event => {
     event.preventDefault();
 
     const input = $("categoryName");
     const name = input.value.trim();
-
     if (!name) return;
 
     const button = event.submitter;
@@ -320,14 +235,10 @@ $("categoryForm").addEventListener("submit", async (event) => {
     button.textContent = "Adding...";
 
     try {
-        const { error } = await supabaseClient
-            .from("categories")
-            .insert({ name });
-
+        const { error } = await db.from("categories").insert({ name });
         if (error) throw error;
 
         input.value = "";
-
         await loadCategories();
         updateStatistics();
 
@@ -339,27 +250,21 @@ $("categoryForm").addEventListener("submit", async (event) => {
     }
 });
 
-categoryList.addEventListener("click", async (event) => {
+categoryList.addEventListener("click", async event => {
     const button = event.target.closest("[data-delete-category]");
-
     if (!button) return;
 
-    const id = button.dataset.deleteCategory;
-
-    if (!confirm(
-        "Delete this category? Products in it will become uncategorised."
-    )) {
+    if (!confirm("Delete this category? Products in it will become uncategorised.")) {
         return;
     }
 
     try {
-        const { error } = await supabaseClient
+        const { error } = await db
             .from("categories")
             .delete()
-            .eq("id", id);
+            .eq("id", button.dataset.deleteCategory);
 
         if (error) throw error;
-
         await loadDashboard();
 
     } catch (error) {
@@ -367,30 +272,22 @@ categoryList.addEventListener("click", async (event) => {
     }
 });
 
-/* ==========================================
-   PRODUCTS
-========================================== */
+/* PRODUCTS */
 
 async function loadProducts() {
-    const { data, error } = await supabaseClient
+    const { data, error } = await db
         .from("products")
         .select("*")
         .order("created_at", { ascending: false });
 
-    if (error) {
-        throw error;
-    }
+    if (error) throw error;
 
     products = data || [];
-
     renderProducts();
 }
 
 function renderProducts() {
-    $("productEmpty").classList.toggle(
-        "hidden",
-        products.length > 0
-    );
+    $("productEmpty").classList.toggle("hidden", products.length > 0);
 
     if (!products.length) {
         productList.innerHTML = "";
@@ -399,54 +296,34 @@ function renderProducts() {
 
     productList.innerHTML = products.map(product => {
         const images = getImages(product);
-
         const image = images[0] ||
             "https://placehold.co/600x400/f0e9df/6b5747?text=No+Image";
 
         return `
             <article class="admin-product-card">
-
-                <img
-                    src="${escapeHTML(image)}"
-                    alt="${escapeHTML(product.name)}"
-                    loading="lazy"
-                >
+                <img src="${escapeHTML(image)}"
+                    alt="${escapeHTML(product.name)}" loading="lazy">
 
                 <div class="admin-product-info">
-
                     <h3>${escapeHTML(product.name)}</h3>
-
-                    <p>${escapeHTML(
-                        getCategoryName(product.category_id)
-                    )}</p>
-
+                    <p>${escapeHTML(getCategoryName(product.category_id))}</p>
                     <p>${images.length} photo(s)</p>
 
                     <div class="card-actions">
-
-                        <button
-                            type="button"
-                            data-edit-product="${escapeHTML(product.id)}"
-                        >
+                        <button type="button"
+                            data-edit-product="${escapeHTML(product.id)}">
                             Edit
                         </button>
 
-                        <button
-                            type="button"
-                            class="delete-button"
-                            data-delete-product="${escapeHTML(product.id)}"
-                        >
+                        <button type="button" class="delete-button"
+                            data-delete-product="${escapeHTML(product.id)}">
                             Delete
                         </button>
-
                     </div>
-
                 </div>
-
             </article>
         `;
     }).join("");
-
 }
 
 function updateStatistics() {
@@ -454,34 +331,26 @@ function updateStatistics() {
     $("totalCategories").textContent = categories.length;
 }
 
-/* ==========================================
-   PRODUCT MODAL
-========================================== */
+/* PRODUCT MODAL */
 
 function openProductModal(product = null) {
     productForm.reset();
-
     clearMessage(productMessage);
 
     existingImages = [];
     selectedFiles = [];
-
     imagePreview.innerHTML = "";
-
     $("editProductId").value = "";
 
     if (product) {
         $("productModalTitle").textContent = "Edit Product";
-
         $("editProductId").value = product.id;
         $("productName").value = product.name;
         $("productDescription").value = product.description || "";
         $("productCategory").value = product.category_id || "";
 
         existingImages = [...getImages(product)];
-
         renderImagePreview();
-
     } else {
         $("productModalTitle").textContent = "Add Product";
     }
@@ -492,47 +361,35 @@ function openProductModal(product = null) {
 function closeProductModal() {
     productModal.classList.add("hidden");
     productForm.reset();
-
     existingImages = [];
     selectedFiles = [];
-
     imagePreview.innerHTML = "";
 }
 
-$("addProductButton").addEventListener("click", () => {
-    openProductModal();
-});
+$("addProductButton").addEventListener("click", () => openProductModal());
 
 $("closeProductModal").addEventListener("click", closeProductModal);
 
-productModal.addEventListener("click", (event) => {
-    if (event.target === productModal) {
-        closeProductModal();
-    }
+productModal.addEventListener("click", event => {
+    if (event.target === productModal) closeProductModal();
 });
 
-/* ==========================================
-   IMAGE PREVIEW
-========================================== */
+/* IMAGE PREVIEW */
 
 function renderImagePreview() {
     imagePreview.innerHTML = "";
 
     existingImages.forEach(url => {
         const img = document.createElement("img");
-
         img.src = url;
         img.alt = "Existing product photo";
-
         imagePreview.appendChild(img);
     });
 
     selectedFiles.forEach(file => {
         const img = document.createElement("img");
-
         img.alt = "New product photo";
         img.src = URL.createObjectURL(file);
-
         imagePreview.appendChild(img);
     });
 }
@@ -540,21 +397,13 @@ function renderImagePreview() {
 productImagesInput.addEventListener("change", () => {
     selectedFiles = Array.from(productImagesInput.files || []);
 
-    if (selectedFiles.length > 10) {
-        alert("Please select a maximum of 10 photos at a time.");
-
-        selectedFiles = [];
-        productImagesInput.value = "";
-    }
-
     const invalidFile = selectedFiles.find(file =>
         !file.type.startsWith("image/") ||
         file.size > 10 * 1024 * 1024
     );
 
-    if (invalidFile) {
-        alert("Only image files up to 10 MB each are allowed.");
-
+    if (selectedFiles.length > 10 || invalidFile) {
+        alert("Select up to 10 image files, each no larger than 10 MB.");
         selectedFiles = [];
         productImagesInput.value = "";
     }
@@ -562,33 +411,28 @@ productImagesInput.addEventListener("change", () => {
     renderImagePreview();
 });
 
-/* ==========================================
-   UPLOAD PRODUCT IMAGES
-========================================== */
+/* STORAGE */
 
 async function uploadProductImages(productId) {
     const uploadedURLs = [];
 
     for (const file of selectedFiles) {
         const extension = file.name.split(".").pop()
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, "");
+            .toLowerCase().replace(/[^a-z0-9]/g, "");
 
         const filePath =
             `${currentUser.id}/${productId}/${crypto.randomUUID()}.${extension}`;
 
-        const { error } = await supabaseClient.storage
+        const { error } = await db.storage
             .from(BUCKET)
             .upload(filePath, file, {
                 contentType: file.type,
                 upsert: false
             });
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
-        const { data } = supabaseClient.storage
+        const { data } = db.storage
             .from(BUCKET)
             .getPublicUrl(filePath);
 
@@ -598,44 +442,48 @@ async function uploadProductImages(productId) {
     return uploadedURLs;
 }
 
-/* ==========================================
-   SAVE PRODUCT
-========================================== */
+function getStoragePath(url) {
+    if (typeof url !== "string") return null;
 
-productForm.addEventListener("submit", async (event) => {
+    try {
+        const parsed = new URL(url);
+        const marker = "/storage/v1/object/public/" + BUCKET + "/";
+        const index = parsed.pathname.indexOf(marker);
+
+        if (index === -1) return null;
+
+        return decodeURIComponent(
+            parsed.pathname.slice(index + marker.length)
+        );
+    } catch {
+        return null;
+    }
+}
+
+/* SAVE PRODUCT */
+
+productForm.addEventListener("submit", async event => {
     event.preventDefault();
-
     clearMessage(productMessage);
 
     const button = $("saveProductButton");
-
     const productId = $("editProductId").value;
-
     const name = $("productName").value.trim();
     const description = $("productDescription").value.trim();
     const categoryId = $("productCategory").value;
 
     if (!name || !categoryId) {
-        showMessage(
-            productMessage,
-            "Please enter a name and select a category."
-        );
+        showMessage(productMessage, "Please enter a name and select a category.");
         return;
     }
 
     if (!productId && selectedFiles.length === 0) {
-        showMessage(
-            productMessage,
-            "Please select at least one product photo."
-        );
+        showMessage(productMessage, "Please select at least one product photo.");
         return;
     }
 
     if (existingImages.length + selectedFiles.length > 10) {
-        showMessage(
-            productMessage,
-            "A product can have a maximum of 10 photos."
-        );
+        showMessage(productMessage, "A product can have a maximum of 10 photos.");
         return;
     }
 
@@ -649,64 +497,35 @@ productForm.addEventListener("submit", async (event) => {
 
         uploadedURLs = await uploadProductImages(id);
 
-        const images = [
-            ...existingImages,
-            ...uploadedURLs
-        ];
-
         const productData = {
             id,
             name,
             description,
             category_id: categoryId,
-            images
+            images: [...existingImages, ...uploadedURLs]
         };
 
-        let result;
+        const result = productId
+            ? await db.from("products").update(productData).eq("id", productId)
+            : await db.from("products").insert(productData);
 
-        if (productId) {
-            result = await supabaseClient
-                .from("products")
-                .update(productData)
-                .eq("id", productId);
-        } else {
-            result = await supabaseClient
-                .from("products")
-                .insert(productData);
-        }
+        if (result.error) throw result.error;
 
-        if (result.error) {
-            throw result.error;
-        }
-
-        showMessage(
-            productMessage,
-            "Product saved successfully!",
-            "success"
-        );
+        showMessage(productMessage, "Product saved successfully!", "success");
 
         await loadDashboard();
-
         setTimeout(closeProductModal, 700);
 
     } catch (error) {
-        // Clean up newly uploaded files if saving the product fails.
         if (uploadedURLs.length) {
-            const paths = uploadedURLs
-                .map(getStoragePath)
-                .filter(Boolean);
+            const paths = uploadedURLs.map(getStoragePath).filter(Boolean);
 
             if (paths.length) {
-                await supabaseClient.storage
-                    .from(BUCKET)
-                    .remove(paths);
+                await db.storage.from(BUCKET).remove(paths);
             }
         }
 
-        showMessage(
-            productMessage,
-            "Could not save product: " + error.message
-        );
+        showMessage(productMessage, "Could not save product: " + error.message);
 
     } finally {
         button.disabled = false;
@@ -714,11 +533,9 @@ productForm.addEventListener("submit", async (event) => {
     }
 });
 
-/* ==========================================
-   EDIT AND DELETE PRODUCTS
-========================================== */
+/* EDIT AND DELETE */
 
-productList.addEventListener("click", async (event) => {
+productList.addEventListener("click", async event => {
     const editButton = event.target.closest("[data-edit-product]");
     const deleteButton = event.target.closest("[data-delete-product]");
 
@@ -727,50 +544,38 @@ productList.addEventListener("click", async (event) => {
             item => item.id === editButton.dataset.editProduct
         );
 
-        if (product) {
-            openProductModal(product);
-        }
-
+        if (product) openProductModal(product);
         return;
     }
 
     if (deleteButton) {
-        const id = deleteButton.dataset.deleteProduct;
-
-        const product = products.find(item => item.id === id);
+        const product = products.find(
+            item => item.id === deleteButton.dataset.deleteProduct
+        );
 
         if (!product) return;
 
-        if (!confirm(
-            `Delete "${product.name}" permanently?`
-        )) {
-            return;
-        }
+        if (!confirm(`Delete "${product.name}" permanently?`)) return;
 
         try {
-            const { error } = await supabaseClient
+            const { error } = await db
                 .from("products")
                 .delete()
-                .eq("id", id);
+                .eq("id", product.id);
 
             if (error) throw error;
 
-            // Remove the associated photos from Storage.
             const paths = getImages(product)
                 .map(getStoragePath)
                 .filter(Boolean);
 
             if (paths.length) {
-                const { error: storageError } =
-                    await supabaseClient.storage
-                        .from(BUCKET)
-                        .remove(paths);
+                const { error: storageError } = await db.storage
+                    .from(BUCKET)
+                    .remove(paths);
 
                 if (storageError) {
-                    console.error(
-                        "Product deleted, but image cleanup failed:",
-                        storageError.message
-                    );
+                    console.error("Image cleanup failed:", storageError.message);
                 }
             }
 
@@ -782,34 +587,6 @@ productList.addEventListener("click", async (event) => {
     }
 });
 
-/* ==========================================
-   STORAGE URL HELPER
-========================================== */
-
-function getStoragePath(url) {
-    if (typeof url !== "string") return null;
-
-    try {
-        const parsed = new URL(url);
-
-        const marker = "/storage/v1/object/public/" + BUCKET + "/";
-
-        const index = parsed.pathname.indexOf(marker);
-
-        if (index === -1) return null;
-
-        return decodeURIComponent(
-            parsed.pathname.slice(index + marker.length)
-        );
-
-    } catch {
-        return null;
-    }
-}
-
-/* ==========================================
-   START APPLICATION
-========================================== */
+/* START */
 
 initializeAdmin();
-
