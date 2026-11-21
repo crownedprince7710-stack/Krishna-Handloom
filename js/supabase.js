@@ -9,9 +9,9 @@
 
 // Replace these with your actual Supabase details.
 
-const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_URL = "https://oewjxdoirfesqulfywng.supabase.co/rest/v1/";
 
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY";
+const SUPABASE_ANON_KEY = "sb_publishable_me0xn2-Esvvprk_kCk8REw_kjjlkRLD";
 
 
 /* 2. INITIALIZE SUPABASE */
