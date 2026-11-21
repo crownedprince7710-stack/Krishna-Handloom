@@ -7,8 +7,7 @@
 
 /* 1. CONFIGURATION */
 
-// Replace this with the shop's WhatsApp number.
-// Use country code + number, without + or spaces.
+
 const WHATSAPP_NUMBER = "917710372235";
 
 
@@ -504,6 +503,7 @@ function showProductDetails(productId) {
         "Hello! Is this product available?",
         "",
         `Product: ${product.name}`,
+        "",
         `Category: ${getCategoryName(category)}`,
         `Product link: ${getProductLink(product)}`
     ].join("\n");
