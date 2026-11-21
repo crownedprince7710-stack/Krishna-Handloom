@@ -1,1 +1,272 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f7f3ec">
+
+    <title>Admin Dashboard | Krishna Handloom</title>
+
+    <link rel="stylesheet" href="admin.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="admin.js" defer></script>
+</head>
+
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <main id="loginScreen" class="login-screen">
+        <div class="login-card">
+
+            <div class="brand-mark">KH</div>
+
+            <p class="eyebrow">THE KRISHNA HANDLOOM</p>
+            <h1>Welcome Back</h1>
+            <p class="muted">Sign in to manage your store.</p>
+
+            <form id="loginForm">
+
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="Enter your email"
+                    autocomplete="username"
+                    required
+                >
+
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <button type="submit" id="loginButton">
+                    Sign In
+                </button>
+
+                <p id="loginMessage" class="message"></p>
+
+            </form>
+
+            <a href="../index.html" class="back-link">
+                ← Back to Website
+            </a>
+
+        </div>
+    </main>
+
+
+    <!-- DASHBOARD -->
+    <div id="dashboardScreen" class="dashboard hidden">
+
+        <aside class="sidebar">
+
+            <div class="sidebar-brand">
+                <div class="brand-mark">KH</div>
+                <div>
+                    <strong>Krishna</strong>
+                    <small>HANDLOOM ADMIN</small>
+                </div>
+            </div>
+
+            <nav>
+                <button class="nav-item active" data-section="overview">
+                    Overview
+                </button>
+
+                <button class="nav-item" data-section="products">
+                    Products
+                </button>
+
+                <button class="nav-item" data-section="categories">
+                    Categories
+                </button>
+            </nav>
+
+            <button id="logoutButton" class="logout-button">
+                Sign Out
+            </button>
+
+        </aside>
+
+
+        <main class="main-content">
+
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">STORE MANAGEMENT</p>
+                    <h1 id="pageTitle">Overview</h1>
+                </div>
+
+                <span class="admin-label">ADMIN</span>
+            </header>
+
+
+            <!-- OVERVIEW -->
+            <section id="overviewSection" class="content-section">
+
+                <div class="welcome-panel">
+                    <p class="eyebrow">THE KRISHNA HANDLOOM</p>
+                    <h2>Your Store, Your Control.</h2>
+                    <p>
+                        Manage your products, photographs and categories
+                        from one place.
+                    </p>
+                </div>
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+                        <span>Total Products</span>
+                        <strong id="totalProducts">0</strong>
+                    </div>
+
+                    <div class="stat-card">
+                        <span>Categories</span>
+                        <strong id="totalCategories">0</strong>
+                    </div>
+
+                </div>
+
+                <button class="primary-button" id="goToProducts">
+                    Manage Products →
+                </button>
+
+            </section>
+
+
+            <!-- PRODUCTS -->
+            <section id="productsSection" class="content-section hidden">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Products</h2>
+                        <p>Add and manage your store collection.</p>
+                    </div>
+
+                    <button class="primary-button" id="addProductButton">
+                        + Add Product
+                    </button>
+                </div>
+
+                <div id="productList" class="admin-product-grid"></div>
+
+                <p id="productEmpty" class="empty-message hidden">
+                    No products added yet.
+                </p>
+
+            </section>
+
+
+            <!-- CATEGORIES -->
+            <section id="categoriesSection" class="content-section hidden">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Categories</h2>
+                        <p>Organise your products into collections.</p>
+                    </div>
+                </div>
+
+                <form id="categoryForm" class="category-form">
+
+                    <input
+                        type="text"
+                        id="categoryName"
+                        placeholder="Example: Blankets"
+                        required
+                    >
+
+                    <button type="submit" class="primary-button">
+                        Add Category
+                    </button>
+
+                </form>
+
+                <div id="categoryList" class="category-list"></div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <!-- PRODUCT EDITOR MODAL -->
+    <div id="productModal" class="modal hidden">
+
+        <div class="modal-card">
+
+            <div class="modal-heading">
+                <div>
+                    <p class="eyebrow">STORE COLLECTION</p>
+                    <h2 id="productModalTitle">Add Product</h2>
+                </div>
+
+                <button id="closeProductModal" class="close-button">
+                    ×
+                </button>
+            </div>
+
+            <form id="productForm">
+
+                <input type="hidden" id="editProductId">
+
+                <label for="productName">Product Name</label>
+                <input
+                    type="text"
+                    id="productName"
+                    placeholder="Example: Premium Floral Blanket"
+                    required
+                >
+
+                <label for="productDescription">Description</label>
+                <textarea
+                    id="productDescription"
+                    rows="4"
+                    placeholder="Describe the product..."
+                ></textarea>
+
+                <label for="productCategory">Category</label>
+                <select id="productCategory" required>
+                    <option value="">Select a category</option>
+                </select>
+
+                <label for="productImages">Product Photos</label>
+                <input
+                    type="file"
+                    id="productImages"
+                    accept="image/*"
+                    multiple
+                >
+
+                <p class="helper-text">
+                    You can select multiple photos. Existing photos
+                    will be retained when editing unless replaced
+                    through the editor.
+                </p>
+
+                <div id="imagePreview" class="image-preview"></div>
+
+                <button type="submit" id="saveProductButton" class="primary-button">
+                    Save Product
+                </button>
+
+                <p id="productMessage" class="message"></p>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</body>
+</html>
+
