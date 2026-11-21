@@ -28,37 +28,26 @@
             <p class="muted">Sign in to manage your store.</p>
 
             <form id="loginForm">
-
                 <label for="email">Email Address</label>
-                <input
-                    type="email"
-                    id="email"
+                <input type="email" id="email"
                     placeholder="Enter your email"
-                    autocomplete="username"
-                    required
-                >
+                    autocomplete="username" required>
 
                 <label for="password">Password</label>
-                <input
-                    type="password"
-                    id="password"
+                <input type="password" id="password"
                     placeholder="Enter your password"
-                    autocomplete="current-password"
-                    required
-                >
+                    autocomplete="current-password" required>
 
                 <button type="submit" id="loginButton">
                     Sign In
                 </button>
 
                 <p id="loginMessage" class="message"></p>
-
             </form>
 
             <a href="../index.html" class="back-link">
                 ← Back to Website
             </a>
-
         </div>
     </main>
 
@@ -105,7 +94,22 @@
                     <h1 id="pageTitle">Overview</h1>
                 </div>
 
-                <span class="admin-label">ADMIN</span>
+                <div class="topbar-actions">
+
+                    <button
+                        type="button"
+                        id="domainRenewalTrigger"
+                        class="domain-renewal-trigger"
+                        title="Domain renewal settings"
+                        aria-label="Open domain renewal settings"
+                    >
+                        <span class="domain-indicator-dot"></span>
+                        <span id="domainDaysLeft">Set expiry</span>
+                    </button>
+
+                    <span class="admin-label">ADMIN</span>
+
+                </div>
             </header>
 
 
@@ -177,12 +181,8 @@
 
                 <form id="categoryForm" class="category-form">
 
-                    <input
-                        type="text"
-                        id="categoryName"
-                        placeholder="Example: Blankets"
-                        required
-                    >
+                    <input type="text" id="categoryName"
+                        placeholder="Example: Blankets" required>
 
                     <button type="submit" class="primary-button">
                         Add Category
@@ -195,7 +195,65 @@
             </section>
 
         </main>
+    </div>
 
+
+    <!-- DOMAIN RENEWAL SETTINGS MODAL -->
+    <div id="domainRenewalModal" class="modal hidden">
+
+        <div class="modal-card domain-modal-card">
+
+            <div class="modal-heading">
+                <div>
+                    <p class="eyebrow">WEBSITE SETTINGS</p>
+                    <h2>Domain Renewal</h2>
+                </div>
+
+                <button
+                    type="button"
+                    id="closeDomainModal"
+                    class="close-button"
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+            </div>
+
+            <div class="domain-info">
+                <span class="domain-info-label">DOMAIN</span>
+                <strong>rs-handloom</strong>
+            </div>
+
+            <form id="domainExpiryForm">
+
+                <label for="domainExpiryDate">
+                    Domain Expiry Date
+                </label>
+
+                <input
+                    type="date"
+                    id="domainExpiryDate"
+                    required
+                >
+
+                <p class="helper-text">
+                    Set the date on which your domain expires.
+                    The countdown will update automatically.
+                </p>
+
+                <button
+                    type="submit"
+                    id="saveDomainExpiry"
+                    class="primary-button"
+                >
+                    Save Expiry Date
+                </button>
+
+                <p id="domainExpiryMessage" class="message"></p>
+
+            </form>
+
+        </div>
     </div>
 
 
@@ -220,19 +278,13 @@
                 <input type="hidden" id="editProductId">
 
                 <label for="productName">Product Name</label>
-                <input
-                    type="text"
-                    id="productName"
+                <input type="text" id="productName"
                     placeholder="Example: Premium Floral Blanket"
-                    required
-                >
+                    required>
 
                 <label for="productDescription">Description</label>
-                <textarea
-                    id="productDescription"
-                    rows="4"
-                    placeholder="Describe the product..."
-                ></textarea>
+                <textarea id="productDescription" rows="4"
+                    placeholder="Describe the product..."></textarea>
 
                 <label for="productCategory">Category</label>
                 <select id="productCategory" required>
@@ -240,12 +292,8 @@
                 </select>
 
                 <label for="productImages">Product Photos</label>
-                <input
-                    type="file"
-                    id="productImages"
-                    accept="image/*"
-                    multiple
-                >
+                <input type="file" id="productImages"
+                    accept="image/*" multiple>
 
                 <p class="helper-text">
                     You can select multiple photos. Existing photos
@@ -255,18 +303,16 @@
 
                 <div id="imagePreview" class="image-preview"></div>
 
-                <button type="submit" id="saveProductButton" class="primary-button">
+                <button type="submit" id="saveProductButton"
+                    class="primary-button">
                     Save Product
                 </button>
 
                 <p id="productMessage" class="message"></p>
 
             </form>
-
         </div>
-
     </div>
 
 </body>
 </html>
-
