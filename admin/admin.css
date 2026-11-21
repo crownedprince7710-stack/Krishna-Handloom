@@ -623,3 +623,151 @@ textarea {
     }
 }
 
+
+/* ==========================================
+   DOMAIN RENEWAL INDICATOR
+========================================== */
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.domain-renewal-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 9px;
+    border: 1px solid rgba(120, 110, 90, 0.18);
+    border-radius: 20px;
+    background: transparent;
+    color: #8a8175;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.domain-renewal-trigger:hover {
+    background: rgba(120, 110, 90, 0.07);
+    color: #51483e;
+}
+
+.domain-indicator-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #789477;
+}
+
+.domain-renewal-trigger.warning .domain-indicator-dot {
+    background: #d69a38;
+}
+
+.domain-renewal-trigger.critical .domain-indicator-dot {
+    background: #c64d42;
+}
+
+.domain-renewal-trigger.expired .domain-indicator-dot {
+    background: #c64d42;
+}
+
+.domain-renewal-trigger.warning {
+    color: #a7772c;
+}
+
+.domain-renewal-trigger.critical,
+.domain-renewal-trigger.expired {
+    color: #bd5148;
+}
+
+
+/* ==========================================
+   DOMAIN RENEWAL MODAL
+========================================== */
+
+.domain-modal-card {
+    max-width: 420px;
+}
+
+.domain-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    background: #f7f3ec;
+}
+
+.domain-info-label {
+    color: #958b7d;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+}
+
+.domain-info strong {
+    color: #40382f;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+#domainExpiryForm {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#domainExpiryForm input[type="date"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ded7ca;
+    border-radius: 8px;
+    background: #fff;
+    color: #40382f;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+#domainExpiryForm input[type="date"]:focus {
+    outline: none;
+    border-color: #9d8460;
+    box-shadow: 0 0 0 3px rgba(157, 132, 96, 0.1);
+}
+
+#domainExpiryForm .helper-text {
+    margin: 0;
+    line-height: 1.6;
+    font-size: 12px;
+    color: #958b7d;
+}
+
+#domainExpiryMessage {
+    margin: 0;
+}
+
+
+/* ==========================================
+   MOBILE RESPONSIVENESS
+========================================== */
+
+@media (max-width: 600px) {
+
+    .topbar-actions {
+        gap: 7px;
+    }
+
+    .domain-renewal-trigger {
+        padding: 5px 7px;
+        font-size: 10px;
+    }
+
+    .domain-modal-card {
+        width: 100%;
+    }
+
+}
+
+
