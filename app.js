@@ -9,7 +9,7 @@
 
 // Replace this with the shop's WhatsApp number.
 // Use country code + number, without + or spaces.
-const WHATSAPP_NUMBER = "91XXXXXXXXXX";
+const WHATSAPP_NUMBER = "917710372235";
 
 
 /* 2. GLOBAL STATE */
