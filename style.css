@@ -1182,3 +1182,22 @@ select:focus-visible {
 
 }
 
+
+/* GALLERY POSITION REFINEMENT */
+
+.gallery-navigation {
+    inset: 0;
+    top: 0;
+    bottom: auto;
+    height: 100%;
+}
+
+.gallery-counter {
+    left: auto;
+    right: 10px;
+    top: 10px;
+    bottom: auto;
+    transform: none;
+}
+
+
