@@ -1093,3 +1093,46 @@ button:disabled {
     }
 
 }
+
+
+/* MANAGEMENT CARDS */
+
+.management-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    max-width: 700px;
+    margin-bottom: 20px;
+}
+
+.management-card h3 {
+    font-family: Georgia, serif;
+    font-size: 19px;
+    font-weight: 500;
+    margin-bottom: 15px;
+}
+
+.management-card .helper-text {
+    margin-bottom: 12px;
+}
+
+.secondary-button {
+    background: var(--cream);
+    color: var(--brown);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 11px 16px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.secondary-button:hover {
+    background: #e6dac8;
+}
+
+@media (max-width: 700px) {
+    .management-card {
+        padding: 17px;
+    }
+}
