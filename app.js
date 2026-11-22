@@ -1,7 +1,7 @@
 
 /* ==========================================
    THE KRISHNA HANDLOOM
-   Main Application JavaScript
+   Customer Website - Upgraded Application
 ========================================== */
 
 
@@ -9,13 +9,21 @@
 
 const WHATSAPP_NUMBER = "918284008674";
 
+const db = window.supabaseClient;
+
 
 /* 2. GLOBAL STATE */
 
 let allProducts = [];
 let allCategories = [];
+let allSubcategories = [];
+
 let activeCategory = "all";
+let activeSubcategory = "all";
 let searchQuery = "";
+
+let currentGalleryImages = [];
+let currentGalleryIndex = 0;
 
 
 /* 3. DOM ELEMENTS */
@@ -108,6 +116,28 @@ function getProductImages(product) {
 }
 
 
+function getProductCategory(product) {
+
+    return allCategories.find(
+
+        category => String(category.id) === String(product.category_id)
+
+    );
+
+}
+
+
+function getProductSubcategory(product) {
+
+    return allSubcategories.find(
+
+        subcategory => String(subcategory.id) === String(product.subcategory_id)
+
+    );
+
+}
+
+
 function getProductLink(product) {
 
     const url = new URL(window.location.href);
@@ -139,7 +169,55 @@ function getWhatsAppLink(message) {
 }
 
 
-/* 6. LOAD DATA FROM SUPABASE */
+function getCategoryFallback(category) {
+
+    const name = getCategoryName(category).toLowerCase();
+
+    return CATEGORY_IMAGES[name] || CATEGORY_IMAGES.default;
+
+}
+
+
+/* 6. CREATE SUBCATEGORY FILTER */
+
+function setupSubcategoryFilter() {
+
+    const controls = document.querySelector(".product-controls");
+
+    if (!controls) return;
+
+    let filter = document.getElementById("subcategoryFilter");
+
+    if (!filter) {
+
+        filter = document.createElement("select");
+
+        filter.id = "subcategoryFilter";
+
+        filter.setAttribute("aria-label", "Filter by subcategory");
+
+        filter.innerHTML = `
+
+            <option value="all">All Subcategories</option>
+
+        `;
+
+        controls.appendChild(filter);
+
+    }
+
+    filter.addEventListener("change", event => {
+
+        activeSubcategory = event.target.value;
+
+        renderProducts();
+
+    });
+
+}
+
+
+/* 7. LOAD DATA FROM SUPABASE */
 
 async function loadWebsiteData() {
 
@@ -151,14 +229,27 @@ async function loadWebsiteData() {
 
         }
 
-        const [categoryResult, productResult] = await Promise.all([
+        const [
 
-            window.supabaseClient
+            categoryResult,
+
+            subcategoryResult,
+
+            productResult
+
+        ] = await Promise.all([
+
+            db
                 .from("categories")
                 .select("*")
                 .order("name"),
 
-            window.supabaseClient
+            db
+                .from("subcategories")
+                .select("*")
+                .order("name"),
+
+            db
                 .from("products")
                 .select("*")
                 .order("created_at", { ascending: false })
@@ -170,6 +261,10 @@ async function loadWebsiteData() {
             throw categoryResult.error;
         }
 
+        if (subcategoryResult.error) {
+            throw subcategoryResult.error;
+        }
+
         if (productResult.error) {
             throw productResult.error;
         }
@@ -177,12 +272,18 @@ async function loadWebsiteData() {
 
         allCategories = categoryResult.data || [];
 
+        allSubcategories = subcategoryResult.data || [];
+
         allProducts = productResult.data || [];
 
+
+        setupSubcategoryFilter();
 
         renderCategories();
 
         renderCategoryFilter();
+
+        renderSubcategoryFilter();
 
         renderProducts();
 
@@ -218,7 +319,7 @@ async function loadWebsiteData() {
 }
 
 
-/* 7. CATEGORY GRID */
+/* 8. CATEGORY GRID */
 
 function renderCategories() {
 
@@ -248,9 +349,7 @@ function renderCategories() {
 
             category.image_url ||
 
-            CATEGORY_IMAGES[name.toLowerCase()] ||
-
-            CATEGORY_IMAGES.default;
+            getCategoryFallback(category);
 
 
         return `
@@ -323,7 +422,7 @@ function renderCategories() {
 }
 
 
-/* 8. CATEGORY DROPDOWN */
+/* 9. CATEGORY DROPDOWN */
 
 function renderCategoryFilter() {
 
@@ -352,11 +451,71 @@ function renderCategoryFilter() {
 }
 
 
-/* 9. CATEGORY SELECTION */
+/* 10. SUBCATEGORY DROPDOWN */
+
+function renderSubcategoryFilter() {
+
+    const filter = document.getElementById("subcategoryFilter");
+
+    if (!filter) return;
+
+
+    const availableSubcategories = allSubcategories.filter(subcategory => {
+
+        return (
+
+            activeCategory === "all" ||
+
+            String(subcategory.category_id) === activeCategory
+
+        );
+
+    });
+
+
+    filter.innerHTML = `
+
+        <option value="all">All Subcategories</option>
+
+        ${availableSubcategories.map(subcategory => `
+
+            <option value="${escapeHTML(subcategory.id)}">
+
+                ${escapeHTML(subcategory.name)}
+
+            </option>
+
+        `).join("")}
+
+    `;
+
+
+    const stillAvailable = availableSubcategories.some(
+
+        item => String(item.id) === activeSubcategory
+
+    );
+
+
+    if (!stillAvailable) {
+
+        activeSubcategory = "all";
+
+    }
+
+
+    filter.value = activeSubcategory;
+
+}
+
+
+/* 11. CATEGORY SELECTION */
 
 function selectCategory(categoryId) {
 
     activeCategory = String(categoryId);
+
+    activeSubcategory = "all";
 
 
     if (categoryFilter) {
@@ -365,6 +524,8 @@ function selectCategory(categoryId) {
 
     }
 
+
+    renderSubcategoryFilter();
 
     renderProducts();
 
@@ -378,7 +539,7 @@ function selectCategory(categoryId) {
 }
 
 
-/* 10. PRODUCT FILTERING */
+/* 12. PRODUCT FILTERING */
 
 function getFilteredProducts() {
 
@@ -391,6 +552,13 @@ function getFilteredProducts() {
             String(product.category_id) === activeCategory;
 
 
+        const matchesSubcategory =
+
+            activeSubcategory === "all" ||
+
+            String(product.subcategory_id) === activeSubcategory;
+
+
         const name = String(product.name || "").toLowerCase();
 
 
@@ -401,14 +569,18 @@ function getFilteredProducts() {
         ).toLowerCase();
 
 
-        const category = allCategories.find(
+        const category = getProductCategory(product);
 
-            item => String(item.id) === String(product.category_id)
-
-        );
+        const subcategory = getProductSubcategory(product);
 
 
         const categoryName = getCategoryName(category).toLowerCase();
+
+        const subcategoryName = String(
+
+            subcategory?.name || ""
+
+        ).toLowerCase();
 
 
         const matchesSearch =
@@ -417,17 +589,27 @@ function getFilteredProducts() {
 
             description.includes(searchQuery) ||
 
-            categoryName.includes(searchQuery);
+            categoryName.includes(searchQuery) ||
+
+            subcategoryName.includes(searchQuery);
 
 
-        return matchesCategory && matchesSearch;
+        return (
+
+            matchesCategory &&
+
+            matchesSubcategory &&
+
+            matchesSearch
+
+        );
 
     });
 
 }
 
 
-/* 11. PRODUCT GRID */
+/* 13. PRODUCT GRID */
 
 function renderProducts() {
 
@@ -446,13 +628,29 @@ function renderProducts() {
 
     if (activeFilter) {
 
+        let filterText = "Showing all products";
+
+        if (activeCategory !== "all") {
+
+            filterText = getCategoryName(selectedCategory);
+
+        }
+
+        if (activeSubcategory !== "all") {
+
+            const selectedSubcategory = allSubcategories.find(
+
+                item => String(item.id) === activeSubcategory
+
+            );
+
+            filterText += ` · ${selectedSubcategory?.name || ""}`;
+
+        }
+
         activeFilter.textContent =
 
-            activeCategory === "all"
-
-                ? `Showing ${filteredProducts.length} products`
-
-                : `Showing ${getCategoryName(selectedCategory)} · ${filteredProducts.length} products`;
+            `${filterText} · ${filteredProducts.length} products`;
 
     }
 
@@ -487,11 +685,18 @@ function renderProducts() {
         const image = images[0] || CATEGORY_IMAGES.default;
 
 
-        const category = allCategories.find(
+        const category = getProductCategory(product);
 
-            item => String(item.id) === String(product.category_id)
+        const subcategory = getProductSubcategory(product);
 
-        );
+
+        const categoryLabel = [
+
+            getCategoryName(category),
+
+            subcategory?.name
+
+        ].filter(Boolean).join(" · ");
 
 
         return `
@@ -522,6 +727,16 @@ function renderProducts() {
 
                     >
 
+                    ${images.length > 1 ? `
+
+                        <span class="product-image-count">
+
+                            ${images.length} Photos
+
+                        </span>
+
+                    ` : ""}
+
                 </div>
 
 
@@ -529,7 +744,7 @@ function renderProducts() {
 
                     <span class="product-category">
 
-                        ${escapeHTML(getCategoryName(category))}
+                        ${escapeHTML(categoryLabel || "Collection")}
 
                     </span>
 
@@ -590,7 +805,175 @@ function renderProducts() {
 }
 
 
-/* 12. PRODUCT DETAILS */
+/* 14. GALLERY CONTROLS */
+
+function setupGalleryControls() {
+
+    const gallery = document.querySelector(".modal-gallery");
+
+    const mainImage = document.getElementById("modalImage");
+
+    if (!gallery || !mainImage) return;
+
+
+    if (gallery.querySelector(".gallery-navigation")) return;
+
+
+    const navigationControls = document.createElement("div");
+
+    navigationControls.className = "gallery-navigation";
+
+    navigationControls.innerHTML = `
+
+        <button
+
+            type="button"
+
+            class="gallery-arrow gallery-prev"
+
+            aria-label="Previous image"
+
+        >‹</button>
+
+
+        <span class="gallery-counter">1 / 1</span>
+
+
+        <button
+
+            type="button"
+
+            class="gallery-arrow gallery-next"
+
+            aria-label="Next image"
+
+        >›</button>
+
+    `;
+
+
+    gallery.appendChild(navigationControls);
+
+
+    navigationControls.querySelector(".gallery-prev")
+
+        .addEventListener("click", event => {
+
+            event.stopPropagation();
+
+            changeGalleryImage(-1);
+
+        });
+
+
+    navigationControls.querySelector(".gallery-next")
+
+        .addEventListener("click", event => {
+
+            event.stopPropagation();
+
+            changeGalleryImage(1);
+
+        });
+
+}
+
+
+function updateGallery() {
+
+    const mainImage = document.getElementById("modalImage");
+
+    const thumbnails = document.getElementById("modalThumbnails");
+
+    const counter = document.querySelector(".gallery-counter");
+
+    const navigationControls = document.querySelector(".gallery-navigation");
+
+
+    if (!mainImage || !thumbnails) return;
+
+
+    const total = currentGalleryImages.length;
+
+
+    if (!total) {
+
+        mainImage.src = CATEGORY_IMAGES.default;
+
+        thumbnails.innerHTML = "";
+
+        if (navigationControls) navigationControls.hidden = true;
+
+        return;
+
+    }
+
+
+    currentGalleryIndex =
+
+        (currentGalleryIndex + total) % total;
+
+
+    mainImage.src = currentGalleryImages[currentGalleryIndex];
+
+
+    if (counter) {
+
+        counter.textContent = `${currentGalleryIndex + 1} / ${total}`;
+
+    }
+
+
+    if (navigationControls) {
+
+        navigationControls.hidden = total <= 1;
+
+    }
+
+
+    thumbnails.querySelectorAll("img").forEach((thumbnail, index) => {
+
+        thumbnail.classList.toggle(
+
+            "active",
+
+            index === currentGalleryIndex
+
+        );
+
+    });
+
+}
+
+
+function changeGalleryImage(direction) {
+
+    if (currentGalleryImages.length <= 1) return;
+
+
+    currentGalleryIndex += direction;
+
+
+    if (currentGalleryIndex < 0) {
+
+        currentGalleryIndex = currentGalleryImages.length - 1;
+
+    }
+
+
+    if (currentGalleryIndex >= currentGalleryImages.length) {
+
+        currentGalleryIndex = 0;
+
+    }
+
+
+    updateGallery();
+
+}
+
+
+/* 15. PRODUCT DETAILS */
 
 function showProductDetails(productId) {
 
@@ -607,11 +990,9 @@ function showProductDetails(productId) {
     const images = getProductImages(product);
 
 
-    const category = allCategories.find(
+    const category = getProductCategory(product);
 
-        item => String(item.id) === String(product.category_id)
-
-    );
+    const subcategory = getProductSubcategory(product);
 
 
     const mainImage = document.getElementById("modalImage");
@@ -635,14 +1016,26 @@ function showProductDetails(productId) {
     }
 
 
-    mainImage.src = images[0] || CATEGORY_IMAGES.default;
+    currentGalleryImages = images.length
 
-    mainImage.alt = product.name;
+        ? images
+
+        : [CATEGORY_IMAGES.default];
+
+
+    currentGalleryIndex = 0;
 
 
     name.textContent = product.name;
 
-    categoryName.textContent = getCategoryName(category);
+
+    categoryName.textContent = [
+
+        getCategoryName(category),
+
+        subcategory?.name
+
+    ].filter(Boolean).join(" · ");
 
 
     description.textContent =
@@ -666,6 +1059,8 @@ function showProductDetails(productId) {
 
             data-image-index="${index}"
 
+            loading="lazy"
+
         >
 
     `).join("");
@@ -675,24 +1070,21 @@ function showProductDetails(productId) {
 
         thumbnail.addEventListener("click", () => {
 
-            mainImage.src = images[Number(thumbnail.dataset.imageIndex)];
+            currentGalleryIndex = Number(thumbnail.dataset.imageIndex);
 
-
-            thumbnails.querySelectorAll("img").forEach(img => {
-
-                img.classList.remove("active");
-
-            });
-
-
-            thumbnail.classList.add("active");
+            updateGallery();
 
         });
 
     });
 
 
-    /* DIRECT WHATSAPP ENQUIRY */
+    setupGalleryControls();
+
+    updateGallery();
+
+
+    /* WHATSAPP ENQUIRY */
 
     const message = [
 
@@ -702,9 +1094,11 @@ function showProductDetails(productId) {
 
         `Product: ${product.name}`,
 
-        "",
-
         `Category: ${getCategoryName(category)}`,
+
+        `Subcategory: ${subcategory?.name || "Not specified"}`,
+
+        "",
 
         `Product link: ${getProductLink(product)}`
 
@@ -749,7 +1143,7 @@ function showProductDetails(productId) {
 }
 
 
-/* 13. OPEN PRODUCT FROM SHARED LINK */
+/* 16. OPEN PRODUCT FROM SHARED LINK */
 
 function openProductFromURL() {
 
@@ -779,7 +1173,7 @@ function openProductFromURL() {
 }
 
 
-/* 14. CLOSE PRODUCT MODAL */
+/* 17. CLOSE PRODUCT MODAL */
 
 function closeProductModal() {
 
@@ -809,24 +1203,33 @@ productModal?.addEventListener("click", event => {
 
 document.addEventListener("keydown", event => {
 
-    if (
+    if (!productModal || productModal.hidden) return;
 
-        event.key === "Escape" &&
 
-        productModal &&
-
-        !productModal.hidden
-
-    ) {
+    if (event.key === "Escape") {
 
         closeProductModal();
+
+    }
+
+
+    if (event.key === "ArrowRight") {
+
+        changeGalleryImage(1);
+
+    }
+
+
+    if (event.key === "ArrowLeft") {
+
+        changeGalleryImage(-1);
 
     }
 
 });
 
 
-/* 15. SEARCH */
+/* 18. SEARCH */
 
 searchInput?.addEventListener("input", event => {
 
@@ -837,22 +1240,29 @@ searchInput?.addEventListener("input", event => {
 });
 
 
-/* 16. CATEGORY DROPDOWN */
+/* 19. CATEGORY DROPDOWN */
 
 categoryFilter?.addEventListener("change", event => {
 
     activeCategory = event.target.value;
+
+    activeSubcategory = "all";
+
+
+    renderSubcategoryFilter();
 
     renderProducts();
 
 });
 
 
-/* 17. RESET FILTERS */
+/* 20. RESET FILTERS */
 
 document.getElementById("resetFilters")?.addEventListener("click", () => {
 
     activeCategory = "all";
+
+    activeSubcategory = "all";
 
     searchQuery = "";
 
@@ -871,12 +1281,23 @@ document.getElementById("resetFilters")?.addEventListener("click", () => {
     }
 
 
+    const subcategoryFilter = document.getElementById("subcategoryFilter");
+
+    if (subcategoryFilter) {
+
+        subcategoryFilter.value = "all";
+
+    }
+
+
+    renderSubcategoryFilter();
+
     renderProducts();
 
 });
 
 
-/* 18. MOBILE NAVIGATION */
+/* 21. MOBILE NAVIGATION */
 
 menuToggle?.addEventListener("click", () => {
 
@@ -917,7 +1338,7 @@ navigation?.querySelectorAll("a").forEach(link => {
 });
 
 
-/* 19. GENERAL WHATSAPP */
+/* 22. GENERAL WHATSAPP */
 
 const generalWhatsapp = document.getElementById("generalWhatsapp");
 
@@ -941,7 +1362,7 @@ if (generalWhatsapp && generalLink) {
 }
 
 
-/* 20. FOOTER YEAR */
+/* 23. FOOTER YEAR */
 
 const currentYear = document.getElementById("currentYear");
 
@@ -953,7 +1374,7 @@ if (currentYear) {
 }
 
 
-/* 21. START WEBSITE */
+/* 24. START WEBSITE */
 
 let websiteLoadStarted = false;
 
