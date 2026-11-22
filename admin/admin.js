@@ -1,22 +1,32 @@
 
 /* ==========================================
    THE KRISHNA HANDLOOM - ADMIN SYSTEM
+   UPGRADED VERSION
 ========================================== */
 
 const ADMIN_UID = "c7479b30-3c69-4a0c-bfe8-c5f18b7ad1d1";
 const db = window.supabaseClient;
 const BUCKET = "product-images";
-
 const DOMAIN_SETTING_ID = "rs-decor";
+
+const MAX_IMAGES = 10;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 let currentUser = null;
 let products = [];
 let categories = [];
+let subcategories = [];
+
 let existingImages = [];
 let selectedFiles = [];
 let savedDomainExpiry = null;
+let previewURLs = [];
 
 const $ = id => document.getElementById(id);
+
+/* ==========================================
+   DOM ELEMENTS
+========================================== */
 
 const loginScreen = $("loginScreen");
 const dashboardScreen = $("dashboardScreen");
@@ -24,15 +34,28 @@ const loginForm = $("loginForm");
 const loginMessage = $("loginMessage");
 const loginButton = $("loginButton");
 const logoutButton = $("logoutButton");
+
 const productList = $("productList");
 const categoryList = $("categoryList");
+const subcategoryList = $("subcategoryList");
+
 const productModal = $("productModal");
 const productForm = $("productForm");
 const productImagesInput = $("productImages");
 const imagePreview = $("imagePreview");
+
+const addMoreImagesButton = $("addMoreImagesButton");
+
 const productMessage = $("productMessage");
 
-// DOMAIN ELEMENTS
+const productCategory = $("productCategory");
+const productSubcategory = $("productSubcategory");
+
+const subcategoryCategory = $("subcategoryCategory");
+const subcategoryName = $("subcategoryName");
+const subcategoryMessage = $("subcategoryMessage");
+
+/* DOMAIN ELEMENTS */
 
 const domainTrigger = $("domainRenewalTrigger");
 const domainDaysLeft = $("domainDaysLeft");
@@ -48,11 +71,15 @@ const saveDomainExpiry = $("saveDomainExpiry");
 ========================================== */
 
 function showMessage(element, message, type = "error") {
+    if (!element) return;
+
     element.textContent = message;
     element.className = "message " + type;
 }
 
 function clearMessage(element) {
+    if (!element) return;
+
     element.textContent = "";
     element.className = "message";
 }
@@ -72,8 +99,40 @@ function getCategoryName(id) {
     return category ? category.name : "Uncategorised";
 }
 
+function getSubcategoryName(id) {
+    const item = subcategories.find(sub => sub.id === id);
+    return item ? item.name : "";
+}
+
 function getImages(product) {
-    return Array.isArray(product.images) ? product.images : [];
+    return Array.isArray(product?.images) ? product.images : [];
+}
+
+function isAdmin() {
+    return Boolean(currentUser && currentUser.id === ADMIN_UID);
+}
+
+function revokePreviewURLs() {
+    previewURLs.forEach(url => URL.revokeObjectURL(url));
+    previewURLs = [];
+}
+
+function resetImageState() {
+    revokePreviewURLs();
+
+    existingImages = [];
+    selectedFiles = [];
+
+    productImagesInput.value = "";
+
+    imagePreview.innerHTML = "";
+
+    $("imageSelectionHint").textContent =
+        "No new photos selected.";
+}
+
+function totalImageCount() {
+    return existingImages.length + selectedFiles.length;
 }
 
 
@@ -105,7 +164,12 @@ async function checkAdmin(user) {
 
     clearMessage(loginMessage);
 
-    await loadDashboard();
+    try {
+        await loadDashboard();
+    } catch (error) {
+        console.error("Dashboard loading error:", error);
+        alert("Dashboard could not load: " + error.message);
+    }
 
     return true;
 }
@@ -228,17 +292,21 @@ $("goToProducts").addEventListener("click", () => {
 
 
 /* ==========================================
-   DASHBOARD DATA
+   DASHBOARD
 ========================================== */
 
 async function loadDashboard() {
-    await Promise.all([
-        loadCategories(),
-        loadProducts(),
-        loadDomainSettings()
-    ]);
+    await loadCategories();
+    await loadSubcategories();
+    await loadProducts();
+    await loadDomainSettings();
 
     updateStatistics();
+}
+
+function updateStatistics() {
+    $("totalProducts").textContent = products.length;
+    $("totalCategories").textContent = categories.length;
 }
 
 
@@ -257,7 +325,7 @@ async function loadCategories() {
     categories = data || [];
 
     renderCategories();
-    populateCategorySelect();
+    populateCategorySelects();
 }
 
 function renderCategories() {
@@ -279,18 +347,24 @@ function renderCategories() {
     `).join("");
 }
 
-function populateCategorySelect() {
-    $("productCategory").innerHTML =
-        '<option value="">Select a category</option>' +
-        categories.map(category => `
-            <option value="${escapeHTML(category.id)}">
-                ${escapeHTML(category.name)}
-            </option>
-        `).join("");
+function populateCategorySelects() {
+    const options = categories.map(category => `
+        <option value="${escapeHTML(category.id)}">
+            ${escapeHTML(category.name)}
+        </option>
+    `).join("");
+
+    productCategory.innerHTML =
+        '<option value="">Select a category</option>' + options;
+
+    subcategoryCategory.innerHTML =
+        '<option value="">Choose a category</option>' + options;
 }
 
 $("categoryForm").addEventListener("submit", async event => {
     event.preventDefault();
+
+    if (!isAdmin()) return;
 
     const input = $("categoryName");
     const name = input.value.trim();
@@ -312,6 +386,8 @@ $("categoryForm").addEventListener("submit", async event => {
         input.value = "";
 
         await loadCategories();
+        await loadSubcategories();
+
         updateStatistics();
 
     } catch (error) {
@@ -319,33 +395,194 @@ $("categoryForm").addEventListener("submit", async event => {
 
     } finally {
         button.disabled = false;
-        button.textContent = "Add Category";
+        button.textContent = "+ Add Category";
     }
 });
 
 categoryList.addEventListener("click", async event => {
     const button = event.target.closest("[data-delete-category]");
 
-    if (!button) return;
+    if (!button || !isAdmin()) return;
+
+    const categoryId = button.dataset.deleteCategory;
 
     if (!confirm(
-        "Delete this category? Products in it will become uncategorised."
-    )) {
-        return;
-    }
+        "Delete this category? Its subcategories will also be deleted."
+    )) return;
 
     try {
         const { error } = await db
             .from("categories")
             .delete()
-            .eq("id", button.dataset.deleteCategory);
+            .eq("id", categoryId);
 
         if (error) throw error;
 
-        await loadDashboard();
+        await loadCategories();
+        await loadSubcategories();
+        await loadProducts();
+
+        updateStatistics();
 
     } catch (error) {
         alert("Could not delete category: " + error.message);
+    }
+});
+
+
+/* ==========================================
+   SUBCATEGORY MANAGEMENT
+========================================== */
+
+async function loadSubcategories() {
+    const { data, error } = await db
+        .from("subcategories")
+        .select("*")
+        .order("name", { ascending: true });
+
+    if (error) throw error;
+
+    subcategories = data || [];
+
+    renderSubcategories();
+    populateProductSubcategories();
+}
+
+function renderSubcategories() {
+    $("subcategoryEmpty").classList.toggle(
+        "hidden",
+        subcategories.length > 0
+    );
+
+    if (!subcategories.length) {
+        subcategoryList.innerHTML = "";
+        return;
+    }
+
+    subcategoryList.innerHTML = subcategories.map(item => `
+        <div class="category-item subcategory-item">
+            <div>
+                <strong>${escapeHTML(item.name)}</strong>
+                <small>
+                    Under ${escapeHTML(getCategoryName(item.category_id))}
+                </small>
+            </div>
+
+            <button type="button"
+                data-delete-subcategory="${escapeHTML(item.id)}">
+                Delete
+            </button>
+        </div>
+    `).join("");
+}
+
+function populateProductSubcategories(selectedId = "") {
+    const categoryId = productCategory.value;
+
+    const matching = subcategories.filter(
+        item => item.category_id === categoryId
+    );
+
+    productSubcategory.innerHTML =
+        '<option value="">Select a subcategory (optional)</option>' +
+        matching.map(item => `
+            <option value="${escapeHTML(item.id)}">
+                ${escapeHTML(item.name)}
+            </option>
+        `).join("");
+
+    productSubcategory.disabled = !categoryId || !matching.length;
+
+    if (selectedId && matching.some(item => item.id === selectedId)) {
+        productSubcategory.value = selectedId;
+    }
+}
+
+productCategory.addEventListener("change", () => {
+    populateProductSubcategories();
+});
+
+$("subcategoryForm").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (!isAdmin()) return;
+
+    clearMessage(subcategoryMessage);
+
+    const categoryId = subcategoryCategory.value;
+    const name = subcategoryName.value.trim();
+
+    if (!categoryId || !name) {
+        showMessage(
+            subcategoryMessage,
+            "Select a category and enter a subcategory name."
+        );
+        return;
+    }
+
+    const button = event.submitter;
+
+    button.disabled = true;
+    button.textContent = "Adding...";
+
+    try {
+        const { error } = await db
+            .from("subcategories")
+            .insert({
+                category_id: categoryId,
+                name
+            });
+
+        if (error) throw error;
+
+        subcategoryName.value = "";
+
+        await loadSubcategories();
+
+        subcategoryCategory.value = categoryId;
+
+        showMessage(
+            subcategoryMessage,
+            "Subcategory added successfully!",
+            "success"
+        );
+
+    } catch (error) {
+        showMessage(
+            subcategoryMessage,
+            "Could not add subcategory: " + error.message
+        );
+
+    } finally {
+        button.disabled = false;
+        button.textContent = "+ Add Subcategory";
+    }
+});
+
+subcategoryList.addEventListener("click", async event => {
+    const button = event.target.closest("[data-delete-subcategory]");
+
+    if (!button || !isAdmin()) return;
+
+    const subcategoryId = button.dataset.deleteSubcategory;
+
+    if (!confirm(
+        "Delete this subcategory? Products using it will remain, but lose this subcategory."
+    )) return;
+
+    try {
+        const { error } = await db
+            .from("subcategories")
+            .delete()
+            .eq("id", subcategoryId);
+
+        if (error) throw error;
+
+        await loadSubcategories();
+        await loadProducts();
+
+    } catch (error) {
+        alert("Could not delete subcategory: " + error.message);
     }
 });
 
@@ -384,6 +621,9 @@ function renderProducts() {
         const image = images[0] ||
             "https://placehold.co/600x400/f0e9df/6b5747?text=No+Image";
 
+        const categoryName = getCategoryName(product.category_id);
+        const subcategoryName = getSubcategoryName(product.subcategory_id);
+
         return `
             <article class="admin-product-card">
 
@@ -395,9 +635,11 @@ function renderProducts() {
 
                     <h3>${escapeHTML(product.name)}</h3>
 
-                    <p>${escapeHTML(
-                        getCategoryName(product.category_id)
-                    )}</p>
+                    <p>${escapeHTML(categoryName)}</p>
+
+                    ${subcategoryName
+                        ? `<p>${escapeHTML(subcategoryName)}</p>`
+                        : ""}
 
                     <p>${images.length} photo(s)</p>
 
@@ -421,25 +663,16 @@ function renderProducts() {
     }).join("");
 }
 
-function updateStatistics() {
-    $("totalProducts").textContent = products.length;
-    $("totalCategories").textContent = categories.length;
-}
-
 
 /* ==========================================
    PRODUCT MODAL
 ========================================== */
 
-function openProductModal(product = null) {
+async function openProductModal(product = null) {
     productForm.reset();
 
     clearMessage(productMessage);
-
-    existingImages = [];
-    selectedFiles = [];
-
-    imagePreview.innerHTML = "";
+    resetImageState();
 
     $("editProductId").value = "";
 
@@ -449,15 +682,23 @@ function openProductModal(product = null) {
         $("editProductId").value = product.id;
         $("productName").value = product.name;
         $("productDescription").value = product.description || "";
-        $("productCategory").value = product.category_id || "";
+
+        productCategory.value = product.category_id || "";
 
         existingImages = [...getImages(product)];
 
-        renderImagePreview();
+        populateProductSubcategories(product.subcategory_id || "");
 
     } else {
         $("productModalTitle").textContent = "Add Product";
+
+        productSubcategory.innerHTML =
+            '<option value="">Select a category first</option>';
+
+        productSubcategory.disabled = true;
     }
+
+    renderImagePreview();
 
     productModal.classList.remove("hidden");
 }
@@ -467,10 +708,16 @@ function closeProductModal() {
 
     productForm.reset();
 
-    existingImages = [];
-    selectedFiles = [];
+    resetImageState();
 
-    imagePreview.innerHTML = "";
+    $("editProductId").value = "";
+
+    productSubcategory.innerHTML =
+        '<option value="">Select a category first</option>';
+
+    productSubcategory.disabled = true;
+
+    clearMessage(productMessage);
 }
 
 $("addProductButton").addEventListener("click", () => {
@@ -487,46 +734,135 @@ productModal.addEventListener("click", event => {
 
 
 /* ==========================================
-   IMAGE PREVIEW
+   MULTIPLE IMAGE UPLOAD
 ========================================== */
 
-function renderImagePreview() {
-    imagePreview.innerHTML = "";
+function addImageFiles(files) {
+    const incoming = Array.from(files || []);
 
-    existingImages.forEach(url => {
-        const img = document.createElement("img");
+    if (!incoming.length) return;
 
-        img.src = url;
-        img.alt = "Existing product photo";
+    for (const file of incoming) {
+        if (!file.type.startsWith("image/")) {
+            alert(`${file.name} is not a valid image.`);
+            continue;
+        }
 
-        imagePreview.appendChild(img);
-    });
+        if (file.size > MAX_IMAGE_SIZE) {
+            alert(`${file.name} exceeds the 10 MB limit.`);
+            continue;
+        }
 
-    selectedFiles.forEach(file => {
-        const img = document.createElement("img");
+        if (totalImageCount() >= MAX_IMAGES) {
+            alert(`Maximum ${MAX_IMAGES} photos per product.`);
+            break;
+        }
 
-        img.alt = "New product photo";
-        img.src = URL.createObjectURL(file);
+        selectedFiles.push(file);
+    }
 
-        imagePreview.appendChild(img);
-    });
+    productImagesInput.value = "";
+
+    renderImagePreview();
 }
 
 productImagesInput.addEventListener("change", () => {
-    selectedFiles = Array.from(productImagesInput.files || []);
+    addImageFiles(productImagesInput.files);
+});
 
-    const invalidFile = selectedFiles.find(file =>
-        !file.type.startsWith("image/") ||
-        file.size > 10 * 1024 * 1024
-    );
+addMoreImagesButton.addEventListener("click", () => {
+    if (totalImageCount() >= MAX_IMAGES) {
+        alert(`Maximum ${MAX_IMAGES} photos per product.`);
+        return;
+    }
 
-    if (selectedFiles.length > 10 || invalidFile) {
-        alert(
-            "Select up to 10 image files, each no larger than 10 MB."
-        );
+    productImagesInput.click();
+});
 
-        selectedFiles = [];
-        productImagesInput.value = "";
+function renderImagePreview() {
+    revokePreviewURLs();
+
+    imagePreview.innerHTML = "";
+
+    const allItems = [
+        ...existingImages.map((url, index) => ({
+            type: "existing",
+            value: url,
+            index
+        })),
+        ...selectedFiles.map((file, index) => ({
+            type: "new",
+            value: file,
+            index
+        }))
+    ];
+
+    allItems.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "image-preview-item";
+
+        const img = document.createElement("img");
+
+        if (item.type === "existing") {
+            img.src = item.value;
+        } else {
+            const url = URL.createObjectURL(item.value);
+            previewURLs.push(url);
+            img.src = url;
+        }
+
+        img.alt = "Product photograph";
+
+        const removeButton = document.createElement("button");
+
+        removeButton.type = "button";
+        removeButton.className = "image-remove-button";
+        removeButton.textContent = "×";
+        removeButton.title = "Remove photo";
+
+        removeButton.dataset.imageType = item.type;
+        removeButton.dataset.imageIndex = item.index;
+
+        card.append(img, removeButton);
+
+        imagePreview.appendChild(card);
+    });
+
+    // Add individual plus card
+    if (totalImageCount() < MAX_IMAGES) {
+        const addCard = document.createElement("button");
+
+        addCard.type = "button";
+        addCard.className = "image-add-card";
+        addCard.innerHTML = `
+            <span>+</span>
+            <small>Add photo</small>
+        `;
+
+        addCard.addEventListener("click", () => {
+            productImagesInput.click();
+        });
+
+        imagePreview.appendChild(addCard);
+    }
+
+    $("imageSelectionHint").textContent =
+        `${existingImages.length} saved photo(s), ` +
+        `${selectedFiles.length} new photo(s). ` +
+        `${totalImageCount()} / ${MAX_IMAGES} total.`;
+}
+
+imagePreview.addEventListener("click", event => {
+    const button = event.target.closest("[data-image-type]");
+
+    if (!button) return;
+
+    const index = Number(button.dataset.imageIndex);
+
+    if (button.dataset.imageType === "existing") {
+        existingImages.splice(index, 1);
+    } else {
+        selectedFiles.splice(index, 1);
     }
 
     renderImagePreview();
@@ -534,18 +870,19 @@ productImagesInput.addEventListener("change", () => {
 
 
 /* ==========================================
-   STORAGE
+   SUPABASE STORAGE
 ========================================== */
 
 async function uploadProductImages(productId) {
     const uploadedURLs = [];
+    const uploadedPaths = [];
 
     for (const file of selectedFiles) {
         const extension = file.name
             .split(".")
             .pop()
             .toLowerCase()
-            .replace(/[^a-z0-9]/g, "");
+            .replace(/[^a-z0-9]/g, "") || "jpg";
 
         const filePath =
             `${currentUser.id}/${productId}/${crypto.randomUUID()}.${extension}`;
@@ -557,7 +894,15 @@ async function uploadProductImages(productId) {
                 upsert: false
             });
 
-        if (error) throw error;
+        if (error) {
+            if (uploadedPaths.length) {
+                await db.storage.from(BUCKET).remove(uploadedPaths);
+            }
+
+            throw error;
+        }
+
+        uploadedPaths.push(filePath);
 
         const { data } = db.storage
             .from(BUCKET)
@@ -566,7 +911,10 @@ async function uploadProductImages(productId) {
         uploadedURLs.push(data.publicUrl);
     }
 
-    return uploadedURLs;
+    return {
+        urls: uploadedURLs,
+        paths: uploadedPaths
+    };
 }
 
 function getStoragePath(url) {
@@ -591,6 +939,20 @@ function getStoragePath(url) {
     }
 }
 
+async function removeStorageImages(urls) {
+    const paths = urls.map(getStoragePath).filter(Boolean);
+
+    if (!paths.length) return;
+
+    const { error } = await db.storage
+        .from(BUCKET)
+        .remove(paths);
+
+    if (error) {
+        console.error("Storage cleanup error:", error.message);
+    }
+}
+
 
 /* ==========================================
    SAVE PRODUCT
@@ -601,12 +963,18 @@ productForm.addEventListener("submit", async event => {
 
     clearMessage(productMessage);
 
+    if (!isAdmin()) {
+        showMessage(productMessage, "Administrator access required.");
+        return;
+    }
+
     const button = $("saveProductButton");
 
     const productId = $("editProductId").value;
     const name = $("productName").value.trim();
     const description = $("productDescription").value.trim();
-    const categoryId = $("productCategory").value;
+    const categoryId = productCategory.value;
+    const subcategoryId = productSubcategory.value || null;
 
     if (!name || !categoryId) {
         showMessage(
@@ -616,7 +984,22 @@ productForm.addEventListener("submit", async event => {
         return;
     }
 
-    if (!productId && selectedFiles.length === 0) {
+    if (subcategoryId) {
+        const validSubcategory = subcategories.some(item =>
+            item.id === subcategoryId &&
+            item.category_id === categoryId
+        );
+
+        if (!validSubcategory) {
+            showMessage(
+                productMessage,
+                "Please select a valid subcategory."
+            );
+            return;
+        }
+    }
+
+    if (!productId && totalImageCount() === 0) {
         showMessage(
             productMessage,
             "Please select at least one product photo."
@@ -624,10 +1007,10 @@ productForm.addEventListener("submit", async event => {
         return;
     }
 
-    if (existingImages.length + selectedFiles.length > 10) {
+    if (totalImageCount() > MAX_IMAGES) {
         showMessage(
             productMessage,
-            "A product can have a maximum of 10 photos."
+            `Maximum ${MAX_IMAGES} photos allowed.`
         );
         return;
     }
@@ -635,29 +1018,54 @@ productForm.addEventListener("submit", async event => {
     button.disabled = true;
     button.textContent = "Saving...";
 
-    let uploadedURLs = [];
+    let uploaded = { urls: [], paths: [] };
 
     try {
         const id = productId || crypto.randomUUID();
 
-        uploadedURLs = await uploadProductImages(id);
+        uploaded = await uploadProductImages(id);
 
         const productData = {
-            id,
             name,
             description,
             category_id: categoryId,
-            images: [...existingImages, ...uploadedURLs]
+            subcategory_id: subcategoryId,
+            images: [...existingImages, ...uploaded.urls]
         };
 
-        const result = productId
-            ? await db.from("products")
+        let result;
+
+        if (productId) {
+            result = await db
+                .from("products")
                 .update(productData)
-                .eq("id", productId)
-            : await db.from("products")
-                .insert(productData);
+                .eq("id", productId);
+
+        } else {
+            result = await db
+                .from("products")
+                .insert({
+                    id,
+                    ...productData
+                });
+        }
 
         if (result.error) throw result.error;
+
+        // Remove photos intentionally removed by the owner
+        if (productId) {
+            const originalProduct = products.find(
+                item => item.id === productId
+            );
+
+            const originalImages = getImages(originalProduct);
+
+            const removedImages = originalImages.filter(
+                url => !existingImages.includes(url)
+            );
+
+            await removeStorageImages(removedImages);
+        }
 
         showMessage(
             productMessage,
@@ -665,19 +1073,14 @@ productForm.addEventListener("submit", async event => {
             "success"
         );
 
-        await loadDashboard();
+        await loadProducts();
+        updateStatistics();
 
         setTimeout(closeProductModal, 700);
 
     } catch (error) {
-        if (uploadedURLs.length) {
-            const paths = uploadedURLs
-                .map(getStoragePath)
-                .filter(Boolean);
-
-            if (paths.length) {
-                await db.storage.from(BUCKET).remove(paths);
-            }
+        if (uploaded.urls.length) {
+            await removeStorageImages(uploaded.urls);
         }
 
         showMessage(
@@ -697,9 +1100,7 @@ productForm.addEventListener("submit", async event => {
 ========================================== */
 
 productList.addEventListener("click", async event => {
-
     const editButton = event.target.closest("[data-edit-product]");
-
     const deleteButton = event.target.closest("[data-delete-product]");
 
     if (editButton) {
@@ -707,23 +1108,21 @@ productList.addEventListener("click", async event => {
             item => item.id === editButton.dataset.editProduct
         );
 
-        if (product) openProductModal(product);
+        if (product) await openProductModal(product);
 
         return;
     }
 
     if (deleteButton) {
+        if (!isAdmin()) return;
+
         const product = products.find(
             item => item.id === deleteButton.dataset.deleteProduct
         );
 
         if (!product) return;
 
-        if (!confirm(
-            `Delete "${product.name}" permanently?`
-        )) {
-            return;
-        }
+        if (!confirm(`Delete "${product.name}" permanently?`)) return;
 
         try {
             const { error } = await db
@@ -733,24 +1132,10 @@ productList.addEventListener("click", async event => {
 
             if (error) throw error;
 
-            const paths = getImages(product)
-                .map(getStoragePath)
-                .filter(Boolean);
+            await removeStorageImages(getImages(product));
 
-            if (paths.length) {
-                const { error: storageError } = await db.storage
-                    .from(BUCKET)
-                    .remove(paths);
-
-                if (storageError) {
-                    console.error(
-                        "Image cleanup failed:",
-                        storageError.message
-                    );
-                }
-            }
-
-            await loadDashboard();
+            await loadProducts();
+            updateStatistics();
 
         } catch (error) {
             alert("Could not delete product: " + error.message);
@@ -763,10 +1148,8 @@ productList.addEventListener("click", async event => {
    DOMAIN RENEWAL SYSTEM
 ========================================== */
 
-/* LOAD DOMAIN SETTINGS */
-
 async function loadDomainSettings() {
-    if (!currentUser || currentUser.id !== ADMIN_UID) return;
+    if (!isAdmin()) return;
 
     try {
         const { data, error } = await db
@@ -791,9 +1174,6 @@ async function loadDomainSettings() {
         domainDaysLeft.textContent = "Unavailable";
     }
 }
-
-
-/* COUNTDOWN CALCULATION */
 
 function updateDomainCountdown() {
     domainTrigger.classList.remove(
@@ -840,36 +1220,25 @@ function updateDomainCountdown() {
 
     if (daysLeft < 0) {
         domainDaysLeft.textContent = "Expired";
-
         domainTrigger.classList.add("expired");
-    }
 
-    else if (daysLeft === 0) {
+    } else if (daysLeft === 0) {
         domainDaysLeft.textContent = "Expires today";
-
         domainTrigger.classList.add("critical");
-    }
 
-    else {
-        domainDaysLeft.textContent =
-            `${daysLeft} days left`;
+    } else {
+        domainDaysLeft.textContent = `${daysLeft} days left`;
 
         if (daysLeft <= 7) {
             domainTrigger.classList.add("critical");
-        }
-
-        else if (daysLeft <= 30) {
+        } else if (daysLeft <= 30) {
             domainTrigger.classList.add("warning");
         }
     }
 }
 
-
-/* OPEN DOMAIN SETTINGS */
-
 domainTrigger.addEventListener("click", () => {
-
-    if (!currentUser || currentUser.id !== ADMIN_UID) return;
+    if (!isAdmin()) return;
 
     clearMessage(domainExpiryMessage);
 
@@ -878,12 +1247,8 @@ domainTrigger.addEventListener("click", () => {
     domainModal.classList.remove("hidden");
 });
 
-
-/* CLOSE DOMAIN SETTINGS */
-
 function closeDomainModal() {
     domainModal.classList.add("hidden");
-
     clearMessage(domainExpiryMessage);
 }
 
@@ -905,22 +1270,25 @@ document.addEventListener("keydown", event => {
     ) {
         closeDomainModal();
     }
+
+    if (
+        event.key === "Escape" &&
+        !productModal.classList.contains("hidden")
+    ) {
+        closeProductModal();
+    }
 });
-
-
-/* SAVE DOMAIN EXPIRY DATE */
 
 domainExpiryForm.addEventListener("submit", async event => {
     event.preventDefault();
 
     clearMessage(domainExpiryMessage);
 
-    if (!currentUser || currentUser.id !== ADMIN_UID) {
+    if (!isAdmin()) {
         showMessage(
             domainExpiryMessage,
             "You are not authorized to change this setting."
         );
-
         return;
     }
 
@@ -931,7 +1299,6 @@ domainExpiryForm.addEventListener("submit", async event => {
             domainExpiryMessage,
             "Please select an expiry date."
         );
-
         return;
     }
 
@@ -950,7 +1317,6 @@ domainExpiryForm.addEventListener("submit", async event => {
         let result;
 
         if (existing) {
-
             result = await db
                 .from("domain_settings")
                 .update({
@@ -960,14 +1326,12 @@ domainExpiryForm.addEventListener("submit", async event => {
                 .eq("id", DOMAIN_SETTING_ID);
 
         } else {
-
             result = await db
                 .from("domain_settings")
                 .insert({
                     id: DOMAIN_SETTING_ID,
                     expiry_date: expiryDate
                 });
-
         }
 
         if (result.error) throw result.error;
@@ -982,9 +1346,7 @@ domainExpiryForm.addEventListener("submit", async event => {
             "success"
         );
 
-        setTimeout(() => {
-            closeDomainModal();
-        }, 1000);
+        setTimeout(closeDomainModal, 1000);
 
     } catch (error) {
         console.error("Domain save error:", error);
@@ -1001,10 +1363,12 @@ domainExpiryForm.addEventListener("submit", async event => {
 });
 
 
-/* AUTOMATIC COUNTDOWN REFRESH */
+/* ==========================================
+   AUTOMATIC COUNTDOWN REFRESH
+========================================== */
 
 setInterval(() => {
-    if (currentUser && currentUser.id === ADMIN_UID) {
+    if (isAdmin()) {
         updateDomainCountdown();
     }
 }, 60000);
