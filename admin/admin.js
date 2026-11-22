@@ -7,7 +7,7 @@ const ADMIN_UID = "c7479b30-3c69-4a0c-bfe8-c5f18b7ad1d1";
 const db = window.supabaseClient;
 const BUCKET = "product-images";
 
-const DOMAIN_SETTING_ID = "rs-handloom";
+const DOMAIN_SETTING_ID = "rs-decor";
 
 let currentUser = null;
 let products = [];
