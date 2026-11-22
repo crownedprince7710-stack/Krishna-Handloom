@@ -771,3 +771,325 @@ textarea {
 }
 
 
+
+/* ==========================================
+   KRISHNA HANDLOOM
+   NEW ADMIN FEATURES
+========================================== */
+
+/* SUBCATEGORY MANAGEMENT */
+
+.subcategory-item {
+    gap: 15px;
+}
+
+.subcategory-item > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.subcategory-item small {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+#subcategoryForm {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    max-width: 650px;
+    margin-bottom: 18px;
+}
+
+#subcategoryForm select,
+#subcategoryForm input {
+    flex: 1;
+    min-width: 150px;
+}
+
+#subcategoryForm button {
+    background: var(--brown);
+    color: white;
+    border-radius: 10px;
+    padding: 13px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+#subcategoryForm button:hover {
+    background: var(--brown-dark);
+}
+
+#subcategoryList {
+    display: grid;
+    gap: 12px;
+    max-width: 650px;
+}
+
+.subcategory-item {
+    border-left: 3px solid var(--gold);
+}
+
+
+/* PRODUCT SUBCATEGORY SELECT */
+
+#productSubcategory {
+    margin-top: 9px;
+}
+
+#productSubcategory:disabled {
+    background: #f5f2ed;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+
+/* ==========================================
+   MULTIPLE IMAGE UPLOAD
+========================================== */
+
+.image-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.image-preview-item {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 11px;
+    overflow: hidden;
+    background: var(--cream);
+    border: 1px solid var(--border);
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 0;
+}
+
+.image-remove-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: rgba(48, 35, 28, 0.85);
+    color: white;
+    font-size: 19px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    transition: 0.2s;
+}
+
+.image-remove-button:hover {
+    background: var(--danger);
+    transform: scale(1.08);
+}
+
+
+/* ADD PHOTO CARD */
+
+.image-add-card {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    min-height: 85px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    background: #faf8f4;
+    border: 1px dashed #c9b99f;
+    border-radius: 11px;
+    color: var(--brown);
+    transition: 0.2s;
+}
+
+.image-add-card:hover {
+    background: var(--cream);
+    border-color: var(--gold);
+}
+
+.image-add-card span {
+    font-family: Georgia, serif;
+    font-size: 32px;
+    line-height: 1;
+    color: var(--gold);
+}
+
+.image-add-card small {
+    font-size: 10px;
+    color: var(--muted);
+}
+
+
+/* IMAGE UPLOAD HINT */
+
+#imageSelectionHint {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+    margin-top: 8px;
+}
+
+
+/* IMAGE UPLOAD INPUT */
+
+#productImages {
+    padding: 10px;
+    background: #faf8f4;
+    border: 1px dashed #c9b99f;
+    cursor: pointer;
+}
+
+#productImages::file-selector-button {
+    background: var(--brown);
+    color: white;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 12px;
+    margin-right: 10px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+
+/* ADD MORE PHOTOS BUTTON */
+
+#addMoreImagesButton {
+    background: var(--cream);
+    color: var(--brown);
+    padding: 11px 15px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    transition: 0.2s;
+}
+
+#addMoreImagesButton:hover {
+    background: #e6dac8;
+}
+
+
+/* ==========================================
+   PRODUCT CARD ENHANCEMENTS
+========================================== */
+
+.admin-product-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.admin-product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+}
+
+.admin-product-card img {
+    transition: transform 0.35s;
+}
+
+.admin-product-card:hover img {
+    transform: scale(1.025);
+}
+
+.admin-product-info p {
+    line-height: 1.5;
+}
+
+.admin-product-info p:nth-of-type(2) {
+    color: var(--gold);
+    font-weight: 600;
+}
+
+
+/* ==========================================
+   BUTTON STATES
+========================================== */
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.primary-button:active,
+#loginButton:active {
+    transform: scale(0.98);
+}
+
+
+/* ==========================================
+   MODAL IMPROVEMENTS
+========================================== */
+
+.modal-card {
+    scrollbar-width: thin;
+    scrollbar-color: #c9b99f transparent;
+}
+
+.modal-card > form {
+    padding-bottom: 5px;
+}
+
+.helper-text {
+    max-width: 100%;
+}
+
+
+/* ==========================================
+   MOBILE RESPONSIVENESS
+========================================== */
+
+@media (max-width: 700px) {
+
+    #subcategoryForm {
+        flex-direction: column;
+    }
+
+    #subcategoryForm select,
+    #subcategoryForm input,
+    #subcategoryForm button {
+        width: 100%;
+    }
+
+    .image-preview {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .image-preview-item {
+        min-width: 0;
+    }
+
+    .image-add-card {
+        min-width: 0;
+    }
+
+    .modal-card {
+        padding: 21px;
+    }
+
+    .subcategory-item {
+        padding: 13px;
+    }
+
+}
+
+@media (max-width: 380px) {
+
+    .image-preview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
