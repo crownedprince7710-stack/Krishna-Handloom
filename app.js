@@ -1,11 +1,14 @@
+
 /* ==========================================
-THE KRISHNA HANDLOOM
-Main Application JavaScript
+   THE KRISHNA HANDLOOM
+   Main Application JavaScript
 ========================================== */
+
 
 /* 1. CONFIGURATION */
 
 const WHATSAPP_NUMBER = "917710372235";
+
 
 /* 2. GLOBAL STATE */
 
@@ -13,6 +16,7 @@ let allProducts = [];
 let allCategories = [];
 let activeCategory = "all";
 let searchQuery = "";
+
 
 /* 3. DOM ELEMENTS */
 
@@ -31,623 +35,947 @@ const modalClose = document.getElementById("modalClose");
 const menuToggle = document.getElementById("menuToggle");
 const navigation = document.getElementById("navigation");
 
+
 /* 4. DEFAULT CATEGORY IMAGES */
 
 const CATEGORY_IMAGES = {
-blanket:
-"https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=700",
 
-blankets:  
-    "https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=700",  
+    blanket:
+        "https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=700",
 
-bedsheet:  
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=700",  
+    blankets:
+        "https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=700",
 
-bedsheets:  
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=700",  
+    bedsheet:
+        "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=700",
 
-curtains:  
-    "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=700",  
+    bedsheets:
+        "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=700",
 
-default:  
-    "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=700"
+    curtains:
+        "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=700",
+
+    default:
+        "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=700"
 
 };
+
 
 /* 5. HELPERS */
 
 function escapeHTML(value = "") {
-return String(value).replace(/[&<>"']/g, char => ({
-"&": "&",
-"<": "<",
-">": ">",
-'"': """,
-"'": "'"
-})[char]);
+
+    return String(value).replace(/[&<>"']/g, char => ({
+
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+
+    })[char]);
+
 }
+
 
 function getCategoryName(category) {
-if (typeof category === "string") {
-return category;
+
+    if (typeof category === "string") {
+        return category;
+    }
+
+    return category?.name || "";
+
 }
 
-return category?.name || "";
-
-}
 
 function getProductImages(product) {
 
-if (Array.isArray(product.images) && product.images.length) {  
-    return product.images.filter(Boolean);  
-}  
+    if (Array.isArray(product.images) && product.images.length) {
 
-if (product.image_url) {  
-    return [product.image_url];  
-}  
+        return product.images.filter(Boolean);
 
-return [];
+    }
+
+    if (product.image_url) {
+
+        return [product.image_url];
+
+    }
+
+    return [];
 
 }
+
 
 function getProductLink(product) {
-const url = new URL(window.location.href);
 
-url.search = "";  
-url.hash = "";  
+    const url = new URL(window.location.href);
 
-url.searchParams.set("product", product.id);  
+    url.search = "";
+    url.hash = "";
 
-return url.toString();
+    url.searchParams.set("product", product.id);
+
+    return url.toString();
 
 }
+
 
 function getWhatsAppLink(message) {
 
-const number = WHATSAPP_NUMBER.replace(/\D/g, "");  
+    const number = WHATSAPP_NUMBER.replace(/\D/g, "");
 
-if (!number || number.includes("XXXXXXXXXX")) {  
-    alert("WhatsApp number has not been configured yet.");  
-    return null;  
-}  
+    if (!number || number.includes("XXXXXXXXXX")) {
 
-return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+        alert("WhatsApp number has not been configured yet.");
+
+        return null;
+
+    }
+
+    return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 
 }
+
 
 /* 6. LOAD DATA FROM SUPABASE */
 
 async function loadWebsiteData() {
 
-try {  
+    try {
 
-    if (!window.supabaseClient) {  
-        throw new Error("Supabase connection is not configured.");  
-    }  
+        if (!window.supabaseClient) {
 
-    const [categoryResult, productResult] = await Promise.all([  
+            throw new Error("Supabase connection is not configured.");
 
-        window.supabaseClient  
-            .from("categories")  
-            .select("*")  
-            .order("name"),  
+        }
 
-        window.supabaseClient  
-            .from("products")  
-            .select("*")  
-            .order("created_at", { ascending: false })  
+        const [categoryResult, productResult] = await Promise.all([
 
-    ]);  
+            window.supabaseClient
+                .from("categories")
+                .select("*")
+                .order("name"),
 
-    if (categoryResult.error) {  
-        throw categoryResult.error;  
-    }  
+            window.supabaseClient
+                .from("products")
+                .select("*")
+                .order("created_at", { ascending: false })
 
-    if (productResult.error) {  
-        throw productResult.error;  
-    }  
+        ]);
 
-    allCategories = categoryResult.data || [];  
-    allProducts = productResult.data || [];  
 
-    renderCategories();  
-    renderCategoryFilter();  
-    renderProducts();  
+        if (categoryResult.error) {
+            throw categoryResult.error;
+        }
 
-    openProductFromURL();  
+        if (productResult.error) {
+            throw productResult.error;
+        }
 
-} catch (error) {  
 
-    console.error("Website loading error:", error);  
+        allCategories = categoryResult.data || [];
 
-    productGrid.innerHTML = `  
-        <div class="loading-message">  
-            <h3>Our collection is temporarily unavailable.</h3>  
-            <p>Please try again in a moment.</p>  
-            <button class="secondary-btn" onclick="loadWebsiteData()">  
-                Try Again  
-            </button>  
-        </div>  
-    `;  
+        allProducts = productResult.data || [];
+
+
+        renderCategories();
+
+        renderCategoryFilter();
+
+        renderProducts();
+
+        openProductFromURL();
+
+
+    } catch (error) {
+
+        console.error("Website loading error:", error);
+
+        if (productGrid) {
+
+            productGrid.innerHTML = `
+
+                <div class="loading-message">
+
+                    <h3>Our collection is temporarily unavailable.</h3>
+
+                    <p>Please try again in a moment.</p>
+
+                    <button class="secondary-btn" onclick="loadWebsiteData()">
+                        Try Again
+                    </button>
+
+                </div>
+
+            `;
+
+        }
+
+    }
 
 }
 
-}
 
 /* 7. CATEGORY GRID */
 
 function renderCategories() {
 
-if (!categoryGrid) return;  
-
-if (!allCategories.length) {  
-
-    categoryGrid.innerHTML = `  
-        <div class="loading-message">  
-            Collections coming soon.  
-        </div>  
-    `;  
-
-    return;  
-}  
-
-categoryGrid.innerHTML = allCategories.map(category => {  
-
-    const name = getCategoryName(category);  
-
-    const image =  
-        category.image_url ||  
-        CATEGORY_IMAGES[name.toLowerCase()] ||  
-        CATEGORY_IMAGES.default;  
-
-    return `  
-        <article  
-            class="category-card"  
-            data-category-id="${escapeHTML(category.id)}"  
-            tabindex="0"  
-            role="button"  
-            aria-label="Explore ${escapeHTML(name)}"  
-        >  
-
-            <img  
-                src="${escapeHTML(image)}"  
-                alt="${escapeHTML(name)}"  
-                loading="lazy"  
-            >  
-
-            <div class="category-info">  
-                <h3>${escapeHTML(name)}</h3>  
-                <span>Explore Collection →</span>  
-            </div>  
-
-        </article>  
-    `;  
-
-}).join("");  
+    if (!categoryGrid) return;
 
 
-categoryGrid.querySelectorAll(".category-card").forEach(card => {  
+    if (!allCategories.length) {
 
-    const select = () => {  
-        selectCategory(card.dataset.categoryId);  
-    };  
+        categoryGrid.innerHTML = `
 
-    card.addEventListener("click", select);  
+            <div class="loading-message">
+                Collections coming soon.
+            </div>
 
-    card.addEventListener("keydown", event => {  
-        if (event.key === "Enter" || event.key === " ") {  
-            event.preventDefault();  
-            select();  
-        }  
-    });  
+        `;
 
-});
+        return;
+
+    }
+
+
+    categoryGrid.innerHTML = allCategories.map(category => {
+
+        const name = getCategoryName(category);
+
+        const image =
+
+            category.image_url ||
+
+            CATEGORY_IMAGES[name.toLowerCase()] ||
+
+            CATEGORY_IMAGES.default;
+
+
+        return `
+
+            <article
+
+                class="category-card"
+
+                data-category-id="${escapeHTML(category.id)}"
+
+                tabindex="0"
+
+                role="button"
+
+                aria-label="Explore ${escapeHTML(name)}"
+
+            >
+
+                <img
+
+                    src="${escapeHTML(image)}"
+
+                    alt="${escapeHTML(name)}"
+
+                    loading="lazy"
+
+                >
+
+                <div class="category-info">
+
+                    <h3>${escapeHTML(name)}</h3>
+
+                    <span>Explore Collection →</span>
+
+                </div>
+
+            </article>
+
+        `;
+
+    }).join("");
+
+
+    categoryGrid.querySelectorAll(".category-card").forEach(card => {
+
+        const select = () => {
+
+            selectCategory(card.dataset.categoryId);
+
+        };
+
+
+        card.addEventListener("click", select);
+
+
+        card.addEventListener("keydown", event => {
+
+            if (event.key === "Enter" || event.key === " ") {
+
+                event.preventDefault();
+
+                select();
+
+            }
+
+        });
+
+    });
 
 }
+
 
 /* 8. CATEGORY DROPDOWN */
 
 function renderCategoryFilter() {
 
-if (!categoryFilter) return;  
+    if (!categoryFilter) return;
 
-categoryFilter.innerHTML = `  
-    <option value="all">All Categories</option>  
-    ${allCategories.map(category => `  
-        <option value="${escapeHTML(category.id)}">  
-            ${escapeHTML(getCategoryName(category))}  
-        </option>  
-    `).join("")}  
-`;  
 
-categoryFilter.value = activeCategory;
+    categoryFilter.innerHTML = `
+
+        <option value="all">All Categories</option>
+
+        ${allCategories.map(category => `
+
+            <option value="${escapeHTML(category.id)}">
+
+                ${escapeHTML(getCategoryName(category))}
+
+            </option>
+
+        `).join("")}
+
+    `;
+
+
+    categoryFilter.value = activeCategory;
 
 }
+
 
 /* 9. CATEGORY SELECTION */
 
 function selectCategory(categoryId) {
 
-activeCategory = String(categoryId);  
+    activeCategory = String(categoryId);
 
-if (categoryFilter) {  
-    categoryFilter.value = activeCategory;  
-}  
 
-renderProducts();  
+    if (categoryFilter) {
 
-document.getElementById("products")?.scrollIntoView({  
-    behavior: "smooth"  
-});
+        categoryFilter.value = activeCategory;
+
+    }
+
+
+    renderProducts();
+
+
+    document.getElementById("products")?.scrollIntoView({
+
+        behavior: "smooth"
+
+    });
 
 }
+
 
 /* 10. PRODUCT FILTERING */
 
 function getFilteredProducts() {
 
-return allProducts.filter(product => {  
+    return allProducts.filter(product => {
 
-    const matchesCategory =  
-        activeCategory === "all" ||  
-        String(product.category_id) === activeCategory;  
+        const matchesCategory =
 
-    const name = String(product.name || "").toLowerCase();  
+            activeCategory === "all" ||
 
-    const description = String(  
-        product.description || ""  
-    ).toLowerCase();  
+            String(product.category_id) === activeCategory;
 
-    const category = allCategories.find(  
-        item => String(item.id) === String(product.category_id)  
-    );  
 
-    const categoryName = getCategoryName(category).toLowerCase();  
+        const name = String(product.name || "").toLowerCase();
 
-    const matchesSearch =  
-        name.includes(searchQuery) ||  
-        description.includes(searchQuery) ||  
-        categoryName.includes(searchQuery);  
 
-    return matchesCategory && matchesSearch;  
+        const description = String(
 
-});
+            product.description || ""
+
+        ).toLowerCase();
+
+
+        const category = allCategories.find(
+
+            item => String(item.id) === String(product.category_id)
+
+        );
+
+
+        const categoryName = getCategoryName(category).toLowerCase();
+
+
+        const matchesSearch =
+
+            name.includes(searchQuery) ||
+
+            description.includes(searchQuery) ||
+
+            categoryName.includes(searchQuery);
+
+
+        return matchesCategory && matchesSearch;
+
+    });
 
 }
+
 
 /* 11. PRODUCT GRID */
 
 function renderProducts() {
 
-if (!productGrid) return;  
-
-const filteredProducts = getFilteredProducts();  
-
-const selectedCategory = allCategories.find(  
-    category => String(category.id) === activeCategory  
-);  
-
-if (activeFilter) {  
-
-    activeFilter.textContent =  
-        activeCategory === "all"  
-            ? `Showing ${filteredProducts.length} products`  
-            : `Showing ${getCategoryName(selectedCategory)} · ${filteredProducts.length} products`;  
-
-}  
-
-if (!filteredProducts.length) {  
-
-    productGrid.innerHTML = "";  
-
-    emptyState.hidden = false;  
-
-    return;  
-
-}  
-
-emptyState.hidden = true;  
-
-productGrid.innerHTML = filteredProducts.map(product => {  
-
-    const images = getProductImages(product);  
-
-    const image = images[0] || CATEGORY_IMAGES.default;  
-
-    const category = allCategories.find(  
-        item => String(item.id) === String(product.category_id)  
-    );  
-
-    return `  
-
-        <article  
-            class="product-card"  
-            data-product-id="${escapeHTML(product.id)}"  
-            tabindex="0"  
-            role="button"  
-            aria-label="View ${escapeHTML(product.name)}"  
-        >  
-
-            <div class="product-image">  
-
-                <img  
-                    src="${escapeHTML(image)}"  
-                    alt="${escapeHTML(product.name)}"  
-                    loading="lazy"  
-                >  
-
-            </div>  
-
-            <div class="product-info">  
-
-                <span class="product-category">  
-                    ${escapeHTML(getCategoryName(category))}  
-                </span>  
-
-                <h3>${escapeHTML(product.name)}</h3>  
-
-                <p>  
-                    ${escapeHTML(product.description || "Explore this beautiful collection.")}  
-                </p>  
-
-                <div class="product-action">  
-                    <span>View Details</span>  
-                    <span>→</span>  
-                </div>  
-
-            </div>  
-
-        </article>  
-
-    `;  
-
-}).join("");  
+    if (!productGrid) return;
 
 
-productGrid.querySelectorAll(".product-card").forEach(card => {  
+    const filteredProducts = getFilteredProducts();
 
-    const open = () => {  
-        showProductDetails(card.dataset.productId);  
-    };  
 
-    card.addEventListener("click", open);  
+    const selectedCategory = allCategories.find(
 
-    card.addEventListener("keydown", event => {  
+        category => String(category.id) === activeCategory
 
-        if (event.key === "Enter" || event.key === " ") {  
-            event.preventDefault();  
-            open();  
-        }  
+    );
 
-    });  
 
-});
+    if (activeFilter) {
+
+        activeFilter.textContent =
+
+            activeCategory === "all"
+
+                ? `Showing ${filteredProducts.length} products`
+
+                : `Showing ${getCategoryName(selectedCategory)} · ${filteredProducts.length} products`;
+
+    }
+
+
+    if (!filteredProducts.length) {
+
+        productGrid.innerHTML = "";
+
+
+        if (emptyState) {
+
+            emptyState.hidden = false;
+
+        }
+
+        return;
+
+    }
+
+
+    if (emptyState) {
+
+        emptyState.hidden = true;
+
+    }
+
+
+    productGrid.innerHTML = filteredProducts.map(product => {
+
+        const images = getProductImages(product);
+
+        const image = images[0] || CATEGORY_IMAGES.default;
+
+
+        const category = allCategories.find(
+
+            item => String(item.id) === String(product.category_id)
+
+        );
+
+
+        return `
+
+            <article
+
+                class="product-card"
+
+                data-product-id="${escapeHTML(product.id)}"
+
+                tabindex="0"
+
+                role="button"
+
+                aria-label="View ${escapeHTML(product.name)}"
+
+            >
+
+                <div class="product-image">
+
+                    <img
+
+                        src="${escapeHTML(image)}"
+
+                        alt="${escapeHTML(product.name)}"
+
+                        loading="lazy"
+
+                    >
+
+                </div>
+
+
+                <div class="product-info">
+
+                    <span class="product-category">
+
+                        ${escapeHTML(getCategoryName(category))}
+
+                    </span>
+
+
+                    <h3>${escapeHTML(product.name)}</h3>
+
+
+                    <p>
+
+                        ${escapeHTML(product.description || "Explore this beautiful collection.")}
+
+                    </p>
+
+
+                    <div class="product-action">
+
+                        <span>View Details</span>
+
+                        <span>→</span>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+        `;
+
+    }).join("");
+
+
+    productGrid.querySelectorAll(".product-card").forEach(card => {
+
+        const open = () => {
+
+            showProductDetails(card.dataset.productId);
+
+        };
+
+
+        card.addEventListener("click", open);
+
+
+        card.addEventListener("keydown", event => {
+
+            if (event.key === "Enter" || event.key === " ") {
+
+                event.preventDefault();
+
+                open();
+
+            }
+
+        });
+
+    });
 
 }
+
 
 /* 12. PRODUCT DETAILS */
 
 function showProductDetails(productId) {
 
-const product = allProducts.find(  
-    item => String(item.id) === String(productId)  
-);  
+    const product = allProducts.find(
 
-if (!product) return;  
+        item => String(item.id) === String(productId)
 
-const images = getProductImages(product);  
-
-const category = allCategories.find(  
-    item => String(item.id) === String(product.category_id)  
-);  
-
-const mainImage = document.getElementById("modalImage");  
-const thumbnails = document.getElementById("modalThumbnails");  
-
-const name = document.getElementById("modalName");  
-const categoryName = document.getElementById("modalCategory");  
-const description = document.getElementById("modalDescription");  
-
-mainImage.src = images[0] || CATEGORY_IMAGES.default;  
-mainImage.alt = product.name;  
-
-name.textContent = product.name;  
-
-categoryName.textContent = getCategoryName(category);  
-
-description.textContent =  
-    product.description || "Discover this beautiful product at Krishna Handloom.";  
-
-thumbnails.innerHTML = images.map((image, index) => `  
-
-    <img  
-        src="${escapeHTML(image)}"  
-        alt="${escapeHTML(product.name)} image ${index + 1}"  
-        class="${index === 0 ? "active" : ""}"  
-        data-image-index="${index}"  
-    >  
-
-`).join("");  
+    );
 
 
-thumbnails.querySelectorAll("img").forEach(thumbnail => {  
-
-    thumbnail.addEventListener("click", () => {  
-
-        mainImage.src = images[Number(thumbnail.dataset.imageIndex)];  
-
-        thumbnails.querySelectorAll("img").forEach(img => {  
-            img.classList.remove("active");  
-        });  
-
-        thumbnail.classList.add("active");  
-
-    });  
-
-});  
+    if (!product) return;
 
 
-const message = [  
-    "Hello! Is this product available?",  
-    "",  
-    `Product: ${product.name}`,  
-    "",  
-    `Category: ${getCategoryName(category)}`,  
-    `Product link: ${getProductLink(product)}`  
-].join("\n");  
+    const images = getProductImages(product);
 
-const whatsappLink = getWhatsAppLink(message);  
 
-const whatsappButton = document.getElementById("modalWhatsapp");  
+    const category = allCategories.find(
 
-if (whatsappLink) {  
-    whatsappButton.href = whatsappLink;  
-    whatsappButton.style.display = "inline-flex";  
-} else {  
-    whatsappButton.removeAttribute("href");  
-    whatsappButton.style.display = "none";  
-}  
+        item => String(item.id) === String(product.category_id)
 
-productModal.hidden = false;  
+    );
 
-document.body.style.overflow = "hidden";
+
+    const mainImage = document.getElementById("modalImage");
+
+    const thumbnails = document.getElementById("modalThumbnails");
+
+
+    const name = document.getElementById("modalName");
+
+    const categoryName = document.getElementById("modalCategory");
+
+    const description = document.getElementById("modalDescription");
+
+
+    if (!mainImage || !thumbnails || !name || !categoryName || !description) {
+
+        console.error("Product modal elements are missing.");
+
+        return;
+
+    }
+
+
+    mainImage.src = images[0] || CATEGORY_IMAGES.default;
+
+    mainImage.alt = product.name;
+
+
+    name.textContent = product.name;
+
+    categoryName.textContent = getCategoryName(category);
+
+
+    description.textContent =
+
+        product.description ||
+
+        "Discover this beautiful product at Krishna Handloom.";
+
+
+    /* PRODUCT THUMBNAILS */
+
+    thumbnails.innerHTML = images.map((image, index) => `
+
+        <img
+
+            src="${escapeHTML(image)}"
+
+            alt="${escapeHTML(product.name)} image ${index + 1}"
+
+            class="${index === 0 ? "active" : ""}"
+
+            data-image-index="${index}"
+
+        >
+
+    `).join("");
+
+
+    thumbnails.querySelectorAll("img").forEach(thumbnail => {
+
+        thumbnail.addEventListener("click", () => {
+
+            mainImage.src = images[Number(thumbnail.dataset.imageIndex)];
+
+
+            thumbnails.querySelectorAll("img").forEach(img => {
+
+                img.classList.remove("active");
+
+            });
+
+
+            thumbnail.classList.add("active");
+
+        });
+
+    });
+
+
+    /* DIRECT WHATSAPP ENQUIRY */
+
+    const message = [
+
+        "Hello! Is this product available?",
+
+        "",
+
+        `Product: ${product.name}`,
+
+        "",
+
+        `Category: ${getCategoryName(category)}`,
+
+        `Product link: ${getProductLink(product)}`
+
+    ].join("\n");
+
+
+    const whatsappLink = getWhatsAppLink(message);
+
+
+    const whatsappButton = document.getElementById("modalWhatsapp");
+
+
+    if (whatsappButton && whatsappLink) {
+
+        whatsappButton.href = whatsappLink;
+
+        whatsappButton.target = "_blank";
+
+        whatsappButton.rel = "noopener noreferrer";
+
+        whatsappButton.style.display = "inline-flex";
+
+    } else if (whatsappButton) {
+
+        whatsappButton.removeAttribute("href");
+
+        whatsappButton.style.display = "none";
+
+    }
+
+
+    /* OPEN PRODUCT MODAL */
+
+    if (productModal) {
+
+        productModal.hidden = false;
+
+        document.body.style.overflow = "hidden";
+
+    }
 
 }
+
 
 /* 13. OPEN PRODUCT FROM SHARED LINK */
 
 function openProductFromURL() {
 
-const productId = new URLSearchParams(  
-    window.location.search  
-).get("product");  
+    const productId = new URLSearchParams(
 
-if (!productId) return;  
+        window.location.search
 
-const product = allProducts.find(  
-    item => String(item.id) === String(productId)  
-);  
+    ).get("product");
 
-if (product) {  
-    showProductDetails(productId);  
+
+    if (!productId) return;
+
+
+    const product = allProducts.find(
+
+        item => String(item.id) === String(productId)
+
+    );
+
+
+    if (product) {
+
+        showProductDetails(productId);
+
+    }
+
 }
 
-}
 
 /* 14. CLOSE PRODUCT MODAL */
 
 function closeProductModal() {
 
-productModal.hidden = true;  
+    if (!productModal) return;
 
-document.body.style.overflow = "";
+
+    productModal.hidden = true;
+
+    document.body.style.overflow = "";
 
 }
+
 
 modalClose?.addEventListener("click", closeProductModal);
 
+
 productModal?.addEventListener("click", event => {
 
-if (event.target === productModal) {  
-    closeProductModal();  
-}
+    if (event.target === productModal) {
+
+        closeProductModal();
+
+    }
 
 });
+
 
 document.addEventListener("keydown", event => {
 
-if (event.key === "Escape" && !productModal.hidden) {  
-    closeProductModal();  
-}
+    if (
+
+        event.key === "Escape" &&
+
+        productModal &&
+
+        !productModal.hidden
+
+    ) {
+
+        closeProductModal();
+
+    }
 
 });
+
 
 /* 15. SEARCH */
 
 searchInput?.addEventListener("input", event => {
 
-searchQuery = event.target.value.trim().toLowerCase();  
+    searchQuery = event.target.value.trim().toLowerCase();
 
-renderProducts();
+    renderProducts();
 
 });
+
 
 /* 16. CATEGORY DROPDOWN */
 
 categoryFilter?.addEventListener("change", event => {
 
-activeCategory = event.target.value;  
+    activeCategory = event.target.value;
 
-renderProducts();
+    renderProducts();
 
 });
+
 
 /* 17. RESET FILTERS */
 
 document.getElementById("resetFilters")?.addEventListener("click", () => {
 
-activeCategory = "all";  
-searchQuery = "";  
+    activeCategory = "all";
 
-searchInput.value = "";  
+    searchQuery = "";
 
-categoryFilter.value = "all";  
 
-renderProducts();
+    if (searchInput) {
+
+        searchInput.value = "";
+
+    }
+
+
+    if (categoryFilter) {
+
+        categoryFilter.value = "all";
+
+    }
+
+
+    renderProducts();
 
 });
+
 
 /* 18. MOBILE NAVIGATION */
 
 menuToggle?.addEventListener("click", () => {
 
-navigation.classList.toggle("active");  
+    if (!navigation) return;
 
-menuToggle.setAttribute(  
-    "aria-expanded",  
-    navigation.classList.contains("active")  
-);
+
+    navigation.classList.toggle("active");
+
+
+    menuToggle.setAttribute(
+
+        "aria-expanded",
+
+        navigation.classList.contains("active")
+
+    );
 
 });
+
 
 navigation?.querySelectorAll("a").forEach(link => {
 
-link.addEventListener("click", () => {  
+    link.addEventListener("click", () => {
 
-    navigation.classList.remove("active");  
+        navigation.classList.remove("active");
 
-    menuToggle.setAttribute("aria-expanded", "false");  
+
+        menuToggle?.setAttribute(
+
+            "aria-expanded",
+
+            "false"
+
+        );
+
+    });
 
 });
 
-});
 
 /* 19. GENERAL WHATSAPP */
 
 const generalWhatsapp = document.getElementById("generalWhatsapp");
 
+
 const generalMessage =
-"Hello Krishna Handloom! I would like to know more about your collection.";
+
+    "Hello Krishna Handloom! I would like to know more about your collection.";
+
 
 const generalLink = getWhatsAppLink(generalMessage);
 
+
 if (generalWhatsapp && generalLink) {
-generalWhatsapp.href = generalLink;
+
+    generalWhatsapp.href = generalLink;
+
+    generalWhatsapp.target = "_blank";
+
+    generalWhatsapp.rel = "noopener noreferrer";
+
 }
+
 
 /* 20. FOOTER YEAR */
 
-document.getElementById("currentYear").textContent =
-new Date().getFullYear();
+const currentYear = document.getElementById("currentYear");
+
+
+if (currentYear) {
+
+    currentYear.textContent = new Date().getFullYear();
+
+}
+
 
 /* 21. START WEBSITE */
 
-document.addEventListener("DOMContentLoaded", () => {
+let websiteLoadStarted = false;
 
-loadWebsiteData();
 
-});
+function startWebsite() {
 
-// In case this file is loaded after DOMContentLoaded:
+    if (websiteLoadStarted) return;
+
+
+    websiteLoadStarted = true;
+
+
+    loadWebsiteData();
+
+}
+
+
+document.addEventListener("DOMContentLoaded", startWebsite);
+
+
 if (document.readyState !== "loading") {
-loadWebsiteData();
+
+    startWebsite();
+
 }
