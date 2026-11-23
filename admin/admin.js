@@ -4,7 +4,8 @@
    UPGRADED VERSION
 ========================================== */
 
-const ADMIN_UID = "66e70835-be34-48c3-8198-67889c62e779";
+const ADMIN_UID = "66e70835-be34-48c3-8198-67889c62e779"
+"0889af88-3bdd-45d3-95a3-e32ba8ca2053";
 const db = window.supabaseClient;
 const BUCKET = "product-images";
 const DOMAIN_SETTING_ID = "rs-decor";
