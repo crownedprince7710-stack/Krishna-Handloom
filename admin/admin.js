@@ -1,17 +1,24 @@
 
 /* ==========================================
    THE KRISHNA HANDLOOM - ADMIN SYSTEM
-   UPGRADED VERSION
+   MULTI-ADMIN UPGRADED VERSION
 ========================================== */
 
-const ADMIN_UID = "66e70835-be34-48c3-8198-67889c62e779",
-"0889af88-3bdd-45d3-95a3-e32ba8ca2053";
+/* 1. ADMIN CONFIGURATION */
+
+const ADMIN_UIDS = [
+    "66e70835-be34-48c3-8198-67889c62e779",
+    "0889af88-3bdd-45d3-95a3-e32ba8ca2053"
+];
+
 const db = window.supabaseClient;
 const BUCKET = "product-images";
 const DOMAIN_SETTING_ID = "rs-decor";
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+
+/* 2. GLOBAL STATE */
 
 let currentUser = null;
 let products = [];
@@ -24,6 +31,7 @@ let savedDomainExpiry = null;
 let previewURLs = [];
 
 const $ = id => document.getElementById(id);
+
 
 /* ==========================================
    DOM ELEMENTS
@@ -46,7 +54,6 @@ const productImagesInput = $("productImages");
 const imagePreview = $("imagePreview");
 
 const addMoreImagesButton = $("addMoreImagesButton");
-
 const productMessage = $("productMessage");
 
 const productCategory = $("productCategory");
@@ -109,12 +116,15 @@ function getImages(product) {
     return Array.isArray(product?.images) ? product.images : [];
 }
 
+/* MULTI-ADMIN AUTHORIZATION */
+
 function isAdmin() {
     return Boolean(
         currentUser &&
         ADMIN_UIDS.includes(currentUser.id)
     );
 }
+
 function revokePreviewURLs() {
     previewURLs.forEach(url => URL.revokeObjectURL(url));
     previewURLs = [];
@@ -127,7 +137,6 @@ function resetImageState() {
     selectedFiles = [];
 
     productImagesInput.value = "";
-
     imagePreview.innerHTML = "";
 
     $("imageSelectionHint").textContent =
@@ -144,7 +153,9 @@ function totalImageCount() {
 ========================================== */
 
 async function checkAdmin(user) {
+
     if (!user || !ADMIN_UIDS.includes(user.id)) {
+
         await db.auth.signOut();
 
         currentUser = null;
@@ -169,15 +180,23 @@ async function checkAdmin(user) {
 
     try {
         await loadDashboard();
+
     } catch (error) {
         console.error("Dashboard loading error:", error);
-        alert("Dashboard could not load: " + error.message);
+
+        alert(
+            "Dashboard could not load: " + error.message
+        );
     }
 
     return true;
 }
 
+
+/* LOGIN */
+
 loginForm.addEventListener("submit", async event => {
+
     event.preventDefault();
 
     clearMessage(loginMessage);
@@ -194,6 +213,7 @@ loginForm.addEventListener("submit", async event => {
     loginButton.textContent = "Signing in...";
 
     try {
+
         const { data, error } = await db.auth.signInWithPassword({
             email: $("email").value.trim(),
             password: $("password").value
@@ -204,15 +224,21 @@ loginForm.addEventListener("submit", async event => {
         await checkAdmin(data.user);
 
     } catch (error) {
+
         showMessage(loginMessage, error.message);
 
     } finally {
+
         loginButton.disabled = false;
         loginButton.textContent = "Sign In";
     }
 });
 
+
+/* LOGOUT */
+
 logoutButton.addEventListener("click", async () => {
+
     const { error } = await db.auth.signOut();
 
     if (error) {
@@ -234,6 +260,7 @@ logoutButton.addEventListener("click", async () => {
 ========================================== */
 
 async function initializeAdmin() {
+
     if (!db) {
         showMessage(
             loginMessage,
@@ -243,6 +270,7 @@ async function initializeAdmin() {
     }
 
     try {
+
         const { data, error } = await db.auth.getSession();
 
         if (error) throw error;
@@ -252,6 +280,7 @@ async function initializeAdmin() {
         }
 
     } catch (error) {
+
         showMessage(loginMessage, error.message);
     }
 }
@@ -262,7 +291,9 @@ async function initializeAdmin() {
 ========================================== */
 
 function showSection(section) {
+
     ["overview", "products", "categories"].forEach(name => {
+
         $(name + "Section").classList.toggle(
             "hidden",
             name !== section
@@ -270,6 +301,7 @@ function showSection(section) {
     });
 
     document.querySelectorAll(".nav-item").forEach(button => {
+
         button.classList.toggle(
             "active",
             button.dataset.section === section
@@ -284,6 +316,7 @@ function showSection(section) {
 }
 
 document.querySelectorAll(".nav-item").forEach(button => {
+
     button.addEventListener("click", () => {
         showSection(button.dataset.section);
     });
@@ -299,6 +332,7 @@ $("goToProducts").addEventListener("click", () => {
 ========================================== */
 
 async function loadDashboard() {
+
     await loadCategories();
     await loadSubcategories();
     await loadProducts();
@@ -308,6 +342,7 @@ async function loadDashboard() {
 }
 
 function updateStatistics() {
+
     $("totalProducts").textContent = products.length;
     $("totalCategories").textContent = categories.length;
 }
@@ -318,6 +353,7 @@ function updateStatistics() {
 ========================================== */
 
 async function loadCategories() {
+
     const { data, error } = await db
         .from("categories")
         .select("*")
@@ -332,29 +368,39 @@ async function loadCategories() {
 }
 
 function renderCategories() {
+
     if (!categories.length) {
+
         categoryList.innerHTML =
             '<p class="empty-message">No categories created yet.</p>';
+
         return;
     }
 
     categoryList.innerHTML = categories.map(category => `
+
         <div class="category-item">
+
             <strong>${escapeHTML(category.name)}</strong>
 
             <button type="button"
                 data-delete-category="${escapeHTML(category.id)}">
                 Delete
             </button>
+
         </div>
+
     `).join("");
 }
 
 function populateCategorySelects() {
+
     const options = categories.map(category => `
+
         <option value="${escapeHTML(category.id)}">
             ${escapeHTML(category.name)}
         </option>
+
     `).join("");
 
     productCategory.innerHTML =
@@ -364,7 +410,11 @@ function populateCategorySelects() {
         '<option value="">Choose a category</option>' + options;
 }
 
+
+/* ADD CATEGORY */
+
 $("categoryForm").addEventListener("submit", async event => {
+
     event.preventDefault();
 
     if (!isAdmin()) return;
@@ -380,6 +430,7 @@ $("categoryForm").addEventListener("submit", async event => {
     button.textContent = "Adding...";
 
     try {
+
         const { error } = await db
             .from("categories")
             .insert({ name });
@@ -394,15 +445,21 @@ $("categoryForm").addEventListener("submit", async event => {
         updateStatistics();
 
     } catch (error) {
+
         alert("Could not add category: " + error.message);
 
     } finally {
+
         button.disabled = false;
         button.textContent = "+ Add Category";
     }
 });
 
+
+/* DELETE CATEGORY */
+
 categoryList.addEventListener("click", async event => {
+
     const button = event.target.closest("[data-delete-category]");
 
     if (!button || !isAdmin()) return;
@@ -414,6 +471,7 @@ categoryList.addEventListener("click", async event => {
     )) return;
 
     try {
+
         const { error } = await db
             .from("categories")
             .delete()
@@ -428,6 +486,7 @@ categoryList.addEventListener("click", async event => {
         updateStatistics();
 
     } catch (error) {
+
         alert("Could not delete category: " + error.message);
     }
 });
@@ -438,6 +497,7 @@ categoryList.addEventListener("click", async event => {
 ========================================== */
 
 async function loadSubcategories() {
+
     const { data, error } = await db
         .from("subcategories")
         .select("*")
@@ -452,34 +512,44 @@ async function loadSubcategories() {
 }
 
 function renderSubcategories() {
+
     $("subcategoryEmpty").classList.toggle(
         "hidden",
         subcategories.length > 0
     );
 
     if (!subcategories.length) {
+
         subcategoryList.innerHTML = "";
         return;
     }
 
     subcategoryList.innerHTML = subcategories.map(item => `
+
         <div class="category-item subcategory-item">
+
             <div>
+
                 <strong>${escapeHTML(item.name)}</strong>
+
                 <small>
                     Under ${escapeHTML(getCategoryName(item.category_id))}
                 </small>
+
             </div>
 
             <button type="button"
                 data-delete-subcategory="${escapeHTML(item.id)}">
                 Delete
             </button>
+
         </div>
+
     `).join("");
 }
 
 function populateProductSubcategories(selectedId = "") {
+
     const categoryId = productCategory.value;
 
     const matching = subcategories.filter(
@@ -488,15 +558,22 @@ function populateProductSubcategories(selectedId = "") {
 
     productSubcategory.innerHTML =
         '<option value="">Select a subcategory (optional)</option>' +
+
         matching.map(item => `
+
             <option value="${escapeHTML(item.id)}">
                 ${escapeHTML(item.name)}
             </option>
+
         `).join("");
 
-    productSubcategory.disabled = !categoryId || !matching.length;
+    productSubcategory.disabled =
+        !categoryId || !matching.length;
 
-    if (selectedId && matching.some(item => item.id === selectedId)) {
+    if (
+        selectedId &&
+        matching.some(item => item.id === selectedId)
+    ) {
         productSubcategory.value = selectedId;
     }
 }
@@ -505,7 +582,11 @@ productCategory.addEventListener("change", () => {
     populateProductSubcategories();
 });
 
+
+/* ADD SUBCATEGORY */
+
 $("subcategoryForm").addEventListener("submit", async event => {
+
     event.preventDefault();
 
     if (!isAdmin()) return;
@@ -516,10 +597,12 @@ $("subcategoryForm").addEventListener("submit", async event => {
     const name = subcategoryName.value.trim();
 
     if (!categoryId || !name) {
+
         showMessage(
             subcategoryMessage,
             "Select a category and enter a subcategory name."
         );
+
         return;
     }
 
@@ -529,6 +612,7 @@ $("subcategoryForm").addEventListener("submit", async event => {
     button.textContent = "Adding...";
 
     try {
+
         const { error } = await db
             .from("subcategories")
             .insert({
@@ -551,18 +635,24 @@ $("subcategoryForm").addEventListener("submit", async event => {
         );
 
     } catch (error) {
+
         showMessage(
             subcategoryMessage,
             "Could not add subcategory: " + error.message
         );
 
     } finally {
+
         button.disabled = false;
         button.textContent = "+ Add Subcategory";
     }
 });
 
+
+/* DELETE SUBCATEGORY */
+
 subcategoryList.addEventListener("click", async event => {
+
     const button = event.target.closest("[data-delete-subcategory]");
 
     if (!button || !isAdmin()) return;
@@ -574,6 +664,7 @@ subcategoryList.addEventListener("click", async event => {
     )) return;
 
     try {
+
         const { error } = await db
             .from("subcategories")
             .delete()
@@ -585,6 +676,7 @@ subcategoryList.addEventListener("click", async event => {
         await loadProducts();
 
     } catch (error) {
+
         alert("Could not delete subcategory: " + error.message);
     }
 });
@@ -595,6 +687,7 @@ subcategoryList.addEventListener("click", async event => {
 ========================================== */
 
 async function loadProducts() {
+
     const { data, error } = await db
         .from("products")
         .select("*")
@@ -608,17 +701,20 @@ async function loadProducts() {
 }
 
 function renderProducts() {
+
     $("productEmpty").classList.toggle(
         "hidden",
         products.length > 0
     );
 
     if (!products.length) {
+
         productList.innerHTML = "";
         return;
     }
 
     productList.innerHTML = products.map(product => {
+
         const images = getImages(product);
 
         const image = images[0] ||
@@ -628,6 +724,7 @@ function renderProducts() {
         const subcategoryName = getSubcategoryName(product.subcategory_id);
 
         return `
+
             <article class="admin-product-card">
 
                 <img src="${escapeHTML(image)}"
@@ -660,9 +757,13 @@ function renderProducts() {
                         </button>
 
                     </div>
+
                 </div>
+
             </article>
+
         `;
+
     }).join("");
 }
 
@@ -672,6 +773,7 @@ function renderProducts() {
 ========================================== */
 
 async function openProductModal(product = null) {
+
     productForm.reset();
 
     clearMessage(productMessage);
@@ -680,19 +782,24 @@ async function openProductModal(product = null) {
     $("editProductId").value = "";
 
     if (product) {
+
         $("productModalTitle").textContent = "Edit Product";
 
         $("editProductId").value = product.id;
         $("productName").value = product.name;
-        $("productDescription").value = product.description || "";
+        $("productDescription").value =
+            product.description || "";
 
         productCategory.value = product.category_id || "";
 
         existingImages = [...getImages(product)];
 
-        populateProductSubcategories(product.subcategory_id || "");
+        populateProductSubcategories(
+            product.subcategory_id || ""
+        );
 
     } else {
+
         $("productModalTitle").textContent = "Add Product";
 
         productSubcategory.innerHTML =
@@ -707,6 +814,7 @@ async function openProductModal(product = null) {
 }
 
 function closeProductModal() {
+
     productModal.classList.add("hidden");
 
     productForm.reset();
@@ -727,9 +835,13 @@ $("addProductButton").addEventListener("click", () => {
     openProductModal();
 });
 
-$("closeProductModal").addEventListener("click", closeProductModal);
+$("closeProductModal").addEventListener(
+    "click",
+    closeProductModal
+);
 
 productModal.addEventListener("click", event => {
+
     if (event.target === productModal) {
         closeProductModal();
     }
@@ -741,11 +853,13 @@ productModal.addEventListener("click", event => {
 ========================================== */
 
 function addImageFiles(files) {
+
     const incoming = Array.from(files || []);
 
     if (!incoming.length) return;
 
     for (const file of incoming) {
+
         if (!file.type.startsWith("image/")) {
             alert(`${file.name} is not a valid image.`);
             continue;
@@ -774,6 +888,7 @@ productImagesInput.addEventListener("change", () => {
 });
 
 addMoreImagesButton.addEventListener("click", () => {
+
     if (totalImageCount() >= MAX_IMAGES) {
         alert(`Maximum ${MAX_IMAGES} photos per product.`);
         return;
@@ -782,35 +897,48 @@ addMoreImagesButton.addEventListener("click", () => {
     productImagesInput.click();
 });
 
+
+/* IMAGE PREVIEW */
+
 function renderImagePreview() {
+
     revokePreviewURLs();
 
     imagePreview.innerHTML = "";
 
     const allItems = [
+
         ...existingImages.map((url, index) => ({
             type: "existing",
             value: url,
             index
         })),
+
         ...selectedFiles.map((file, index) => ({
             type: "new",
             value: file,
             index
         }))
+
     ];
 
     allItems.forEach(item => {
+
         const card = document.createElement("div");
         card.className = "image-preview-item";
 
         const img = document.createElement("img");
 
         if (item.type === "existing") {
+
             img.src = item.value;
+
         } else {
+
             const url = URL.createObjectURL(item.value);
+
             previewURLs.push(url);
+
             img.src = url;
         }
 
@@ -831,12 +959,16 @@ function renderImagePreview() {
         imagePreview.appendChild(card);
     });
 
-    // Add individual plus card
+
+    /* ADD PHOTO CARD */
+
     if (totalImageCount() < MAX_IMAGES) {
+
         const addCard = document.createElement("button");
 
         addCard.type = "button";
         addCard.className = "image-add-card";
+
         addCard.innerHTML = `
             <span>+</span>
             <small>Add photo</small>
@@ -855,7 +987,11 @@ function renderImagePreview() {
         `${totalImageCount()} / ${MAX_IMAGES} total.`;
 }
 
+
+/* REMOVE IMAGE */
+
 imagePreview.addEventListener("click", event => {
+
     const button = event.target.closest("[data-image-type]");
 
     if (!button) return;
@@ -863,8 +999,11 @@ imagePreview.addEventListener("click", event => {
     const index = Number(button.dataset.imageIndex);
 
     if (button.dataset.imageType === "existing") {
+
         existingImages.splice(index, 1);
+
     } else {
+
         selectedFiles.splice(index, 1);
     }
 
@@ -877,10 +1016,12 @@ imagePreview.addEventListener("click", event => {
 ========================================== */
 
 async function uploadProductImages(productId) {
+
     const uploadedURLs = [];
     const uploadedPaths = [];
 
     for (const file of selectedFiles) {
+
         const extension = file.name
             .split(".")
             .pop()
@@ -898,8 +1039,12 @@ async function uploadProductImages(productId) {
             });
 
         if (error) {
+
             if (uploadedPaths.length) {
-                await db.storage.from(BUCKET).remove(uploadedPaths);
+
+                await db.storage
+                    .from(BUCKET)
+                    .remove(uploadedPaths);
             }
 
             throw error;
@@ -920,10 +1065,13 @@ async function uploadProductImages(productId) {
     };
 }
 
+
 function getStoragePath(url) {
+
     if (typeof url !== "string") return null;
 
     try {
+
         const parsed = new URL(url);
 
         const marker =
@@ -938,11 +1086,14 @@ function getStoragePath(url) {
         );
 
     } catch {
+
         return null;
     }
 }
 
+
 async function removeStorageImages(urls) {
+
     const paths = urls.map(getStoragePath).filter(Boolean);
 
     if (!paths.length) return;
@@ -962,12 +1113,18 @@ async function removeStorageImages(urls) {
 ========================================== */
 
 productForm.addEventListener("submit", async event => {
+
     event.preventDefault();
 
     clearMessage(productMessage);
 
     if (!isAdmin()) {
-        showMessage(productMessage, "Administrator access required.");
+
+        showMessage(
+            productMessage,
+            "Administrator access required."
+        );
+
         return;
     }
 
@@ -980,41 +1137,50 @@ productForm.addEventListener("submit", async event => {
     const subcategoryId = productSubcategory.value || null;
 
     if (!name || !categoryId) {
+
         showMessage(
             productMessage,
             "Please enter a name and select a category."
         );
+
         return;
     }
 
     if (subcategoryId) {
+
         const validSubcategory = subcategories.some(item =>
             item.id === subcategoryId &&
             item.category_id === categoryId
         );
 
         if (!validSubcategory) {
+
             showMessage(
                 productMessage,
                 "Please select a valid subcategory."
             );
+
             return;
         }
     }
 
     if (!productId && totalImageCount() === 0) {
+
         showMessage(
             productMessage,
             "Please select at least one product photo."
         );
+
         return;
     }
 
     if (totalImageCount() > MAX_IMAGES) {
+
         showMessage(
             productMessage,
             `Maximum ${MAX_IMAGES} photos allowed.`
         );
+
         return;
     }
 
@@ -1024,6 +1190,7 @@ productForm.addEventListener("submit", async event => {
     let uploaded = { urls: [], paths: [] };
 
     try {
+
         const id = productId || crypto.randomUUID();
 
         uploaded = await uploadProductImages(id);
@@ -1039,12 +1206,14 @@ productForm.addEventListener("submit", async event => {
         let result;
 
         if (productId) {
+
             result = await db
                 .from("products")
                 .update(productData)
                 .eq("id", productId);
 
         } else {
+
             result = await db
                 .from("products")
                 .insert({
@@ -1055,8 +1224,11 @@ productForm.addEventListener("submit", async event => {
 
         if (result.error) throw result.error;
 
-        // Remove photos intentionally removed by the owner
+
+        /* REMOVE PHOTOS REMOVED BY ADMIN */
+
         if (productId) {
+
             const originalProduct = products.find(
                 item => item.id === productId
             );
@@ -1077,11 +1249,13 @@ productForm.addEventListener("submit", async event => {
         );
 
         await loadProducts();
+
         updateStatistics();
 
         setTimeout(closeProductModal, 700);
 
     } catch (error) {
+
         if (uploaded.urls.length) {
             await removeStorageImages(uploaded.urls);
         }
@@ -1092,6 +1266,7 @@ productForm.addEventListener("submit", async event => {
         );
 
     } finally {
+
         button.disabled = false;
         button.textContent = "Save Product";
     }
@@ -1103,20 +1278,25 @@ productForm.addEventListener("submit", async event => {
 ========================================== */
 
 productList.addEventListener("click", async event => {
+
     const editButton = event.target.closest("[data-edit-product]");
     const deleteButton = event.target.closest("[data-delete-product]");
 
     if (editButton) {
+
         const product = products.find(
             item => item.id === editButton.dataset.editProduct
         );
 
-        if (product) await openProductModal(product);
+        if (product) {
+            await openProductModal(product);
+        }
 
         return;
     }
 
     if (deleteButton) {
+
         if (!isAdmin()) return;
 
         const product = products.find(
@@ -1125,9 +1305,12 @@ productList.addEventListener("click", async event => {
 
         if (!product) return;
 
-        if (!confirm(`Delete "${product.name}" permanently?`)) return;
+        if (!confirm(
+            `Delete "${product.name}" permanently?`
+        )) return;
 
         try {
+
             const { error } = await db
                 .from("products")
                 .delete()
@@ -1138,9 +1321,11 @@ productList.addEventListener("click", async event => {
             await removeStorageImages(getImages(product));
 
             await loadProducts();
+
             updateStatistics();
 
         } catch (error) {
+
             alert("Could not delete product: " + error.message);
         }
     }
@@ -1152,9 +1337,11 @@ productList.addEventListener("click", async event => {
 ========================================== */
 
 async function loadDomainSettings() {
+
     if (!isAdmin()) return;
 
     try {
+
         const { data, error } = await db
             .from("domain_settings")
             .select("expiry_date")
@@ -1170,6 +1357,7 @@ async function loadDomainSettings() {
         updateDomainCountdown();
 
     } catch (error) {
+
         console.error("Domain settings error:", error);
 
         savedDomainExpiry = null;
@@ -1178,7 +1366,9 @@ async function loadDomainSettings() {
     }
 }
 
+
 function updateDomainCountdown() {
+
     domainTrigger.classList.remove(
         "warning",
         "critical",
@@ -1186,6 +1376,7 @@ function updateDomainCountdown() {
     );
 
     if (!savedDomainExpiry) {
+
         domainDaysLeft.textContent = "Set expiry";
         return;
     }
@@ -1201,6 +1392,7 @@ function updateDomainCountdown() {
         parts[2] < 1 ||
         parts[2] > 31
     ) {
+
         domainDaysLeft.textContent = "Invalid date";
         return;
     }
@@ -1222,25 +1414,37 @@ function updateDomainCountdown() {
     );
 
     if (daysLeft < 0) {
+
         domainDaysLeft.textContent = "Expired";
+
         domainTrigger.classList.add("expired");
 
     } else if (daysLeft === 0) {
+
         domainDaysLeft.textContent = "Expires today";
+
         domainTrigger.classList.add("critical");
 
     } else {
+
         domainDaysLeft.textContent = `${daysLeft} days left`;
 
         if (daysLeft <= 7) {
+
             domainTrigger.classList.add("critical");
+
         } else if (daysLeft <= 30) {
+
             domainTrigger.classList.add("warning");
         }
     }
 }
 
+
+/* DOMAIN MODAL */
+
 domainTrigger.addEventListener("click", () => {
+
     if (!isAdmin()) return;
 
     clearMessage(domainExpiryMessage);
@@ -1251,7 +1455,9 @@ domainTrigger.addEventListener("click", () => {
 });
 
 function closeDomainModal() {
+
     domainModal.classList.add("hidden");
+
     clearMessage(domainExpiryMessage);
 }
 
@@ -1261,12 +1467,17 @@ $("closeDomainModal").addEventListener(
 );
 
 domainModal.addEventListener("click", event => {
+
     if (event.target === domainModal) {
         closeDomainModal();
     }
 });
 
+
+/* ESCAPE KEY */
+
 document.addEventListener("keydown", event => {
+
     if (
         event.key === "Escape" &&
         !domainModal.classList.contains("hidden")
@@ -1282,26 +1493,34 @@ document.addEventListener("keydown", event => {
     }
 });
 
+
+/* SAVE DOMAIN EXPIRY */
+
 domainExpiryForm.addEventListener("submit", async event => {
+
     event.preventDefault();
 
     clearMessage(domainExpiryMessage);
 
     if (!isAdmin()) {
+
         showMessage(
             domainExpiryMessage,
             "You are not authorized to change this setting."
         );
+
         return;
     }
 
     const expiryDate = domainExpiryDate.value;
 
     if (!expiryDate) {
+
         showMessage(
             domainExpiryMessage,
             "Please select an expiry date."
         );
+
         return;
     }
 
@@ -1309,6 +1528,7 @@ domainExpiryForm.addEventListener("submit", async event => {
     saveDomainExpiry.textContent = "Saving...";
 
     try {
+
         const { data: existing, error: fetchError } = await db
             .from("domain_settings")
             .select("id")
@@ -1320,6 +1540,7 @@ domainExpiryForm.addEventListener("submit", async event => {
         let result;
 
         if (existing) {
+
             result = await db
                 .from("domain_settings")
                 .update({
@@ -1329,6 +1550,7 @@ domainExpiryForm.addEventListener("submit", async event => {
                 .eq("id", DOMAIN_SETTING_ID);
 
         } else {
+
             result = await db
                 .from("domain_settings")
                 .insert({
@@ -1352,6 +1574,7 @@ domainExpiryForm.addEventListener("submit", async event => {
         setTimeout(closeDomainModal, 1000);
 
     } catch (error) {
+
         console.error("Domain save error:", error);
 
         showMessage(
@@ -1360,6 +1583,7 @@ domainExpiryForm.addEventListener("submit", async event => {
         );
 
     } finally {
+
         saveDomainExpiry.disabled = false;
         saveDomainExpiry.textContent = "Save Expiry Date";
     }
@@ -1371,9 +1595,11 @@ domainExpiryForm.addEventListener("submit", async event => {
 ========================================== */
 
 setInterval(() => {
+
     if (isAdmin()) {
         updateDomainCountdown();
     }
+
 }, 60000);
 
 
