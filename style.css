@@ -1262,6 +1262,8 @@ select:focus-visible {
 .floating-whatsapp svg {
     width: 29px;
     height: 29px;
+    display: block;
+    margin: 0;
 }
 
 .floating-whatsapp:hover {
