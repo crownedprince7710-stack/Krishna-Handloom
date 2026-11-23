@@ -1249,7 +1249,7 @@ select:focus-visible {
     height: 56px;
     display: flex;
     justify-content: center;
-    align-items: centre;
+    align-items: center;
     background: #25D366;
     color: #ffffff;
     border-radius: 50%;
