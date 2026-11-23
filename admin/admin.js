@@ -4,7 +4,7 @@
    UPGRADED VERSION
 ========================================== */
 
-const ADMIN_UID = "66e70835-be34-48c3-8198-67889c62e779"
+const ADMIN_UID = "66e70835-be34-48c3-8198-67889c62e779",
 "0889af88-3bdd-45d3-95a3-e32ba8ca2053";
 const db = window.supabaseClient;
 const BUCKET = "product-images";
@@ -110,9 +110,11 @@ function getImages(product) {
 }
 
 function isAdmin() {
-    return Boolean(currentUser && currentUser.id === ADMIN_UID);
+    return Boolean(
+        currentUser &&
+        ADMIN_UIDS.includes(currentUser.id)
+    );
 }
-
 function revokePreviewURLs() {
     previewURLs.forEach(url => URL.revokeObjectURL(url));
     previewURLs = [];
@@ -142,7 +144,7 @@ function totalImageCount() {
 ========================================== */
 
 async function checkAdmin(user) {
-    if (!user || user.id !== ADMIN_UID) {
+    if (!user || !ADMIN_UIDS.includes(user.id)) {
         await db.auth.signOut();
 
         currentUser = null;
