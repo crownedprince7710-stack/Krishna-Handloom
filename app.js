@@ -752,7 +752,7 @@ function renderProducts() {
                     <h3>${escapeHTML(product.name)}</h3>
 
 
-                    <p>
+                    <p class="product-description">
 
                         ${escapeHTML(product.description || "Explore this beautiful collection.")}
 
